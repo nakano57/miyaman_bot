@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3
 # nohup /home/pi/ProjectColdBot/bot.py /home/pi/ProjectColdBot/dump.json >/dev/null &
 
 import json
@@ -8,7 +8,6 @@ import datetime
 import sys
 import asyncio
 import time
-import schedule
 
 # config.pyを用意
 import config
@@ -263,7 +262,7 @@ class MiyaClient(discord.Client):
         print(post_channels)
 
         while True:
-            print("update" + datetime.datetime.now().isoformat() +
+            print("update: " + datetime.datetime.now().isoformat() +
                   " count = "+str(self.update_count))
 
             await self.tweet_report(post_channels)
@@ -283,14 +282,12 @@ class MiyaClient(discord.Client):
         print('We have logged in as {0.user}'.format(client))
 
     async def on_guild_available(self, guild):
-
         print("Connected :"+guild.name)
-
         task = asyncio.create_task(self.worker(guild))
         task.set_name(guild.name)
         print(asyncio.all_tasks())
         # await task
-        print("started")
+        print("Started")
 
     async def on_message(self, message):
         #print('Message from {0.author}: {0.content}'.format(message))
@@ -313,8 +310,10 @@ class MiyaClient(discord.Client):
         for task in asyncio.all_tasks():
             print(task.get_name())
             if task.get_name() in names:
-                print("Canceled: "+str(names))
                 task.cancel()
+                print("Canceled: "+str(names))
+        print("Stopped")
+        sys.exit(0)
 
 
 if __name__ == '__main__':

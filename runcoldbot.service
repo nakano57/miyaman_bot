@@ -3,7 +3,7 @@
 Description = coldbot
 
 [Service]
-ExecStart = /home/pi/ProjectColdBot/bot.py /home/pi/ProjectColdBot/ids.json
+ExecStart = /home/pi/ProjectColdBot/bot.py /home/pi/ProjectColdBot/dump.json
 # 再起動設定
 Restart = always
 Type = simple
