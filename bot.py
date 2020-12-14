@@ -58,9 +58,6 @@ with open(sys.argv[1]) as f:
     print(latest_dic)
 
 
-client = discord.Client()
-
-
 def get_latest_tweet(screen_name):
 
     params = {
@@ -157,165 +154,169 @@ def my_round(val, digit=0):
     return (val * p * 2 + 1) // 2 / p
 
 
-async def worker(guild):
-    post_channels = []
-    print(guild.text_channels)
-    for i in guild.text_channels:
-        if i.name in post_channel_config:
-            post_channels.append(i)
+class MiyaClient(discord.Client):
 
-    for i in post_channels:
-        await i.send('[BOT]RESTART')
+    async def worker(self, guild):
+        post_channels = []
+        print(guild.text_channels)
+        for i in guild.text_channels:
+            if i.name in post_channel_config:
+                post_channels.append(i)
 
-    print(post_channels)
+        for i in post_channels:
+            await i.send('[BOT]RESTART')
 
-    update_count = 0
-    iine_count = 0
-    iine_list = set()
-    follow_count = 0
-    follow_list = set()
-    fefteen_flag = False
+        print(post_channels)
 
-    while True:
-        print("update" + datetime.datetime.now().isoformat() +
-              " count = "+str(update_count))
+        update_count = 0
+        iine_count = 0
+        iine_list = set()
+        follow_count = 0
+        follow_list = set()
+        fefteen_flag = False
 
-        for k, v in dic.items():
-            text, id = get_latest_tweet(v)
-            following, name, fav = get_followings(v)
+        while True:
+            print("update" + datetime.datetime.now().isoformat() +
+                  " count = "+str(update_count))
 
-            if id < 0 or following < 0:
-                reset = get_limit()
-                dt = datetime.datetime.fromtimestamp(reset)
-                for i in post_channels:
-                    await i.send("[BOT]"+text+" Twitterのリミット制限。一旦休憩します。（再開:{}）".format(dt))
+            for k, v in dic.items():
+                text, id = get_latest_tweet(v)
+                following, name, fav = get_followings(v)
 
-                await asyncio.sleep(int(reset)-int(time.time()))
+                if id < 0 or following < 0:
+                    reset = get_limit()
+                    dt = datetime.datetime.fromtimestamp(reset)
+                    for i in post_channels:
+                        await i.send("[BOT]"+text+" Twitterのリミット制限。一旦休憩します。（再開:{}）".format(dt))
+
+                    await asyncio.sleep(int(reset)-int(time.time()))
+
+                else:
+                    dump_flag = False
+                    if id != latest_dic["ids"][str(k)]:
+                        update_count += 1
+                        dump_flag = True
+                        print(text)
+                        for i in post_channels:
+                            await i.send(text)
+
+                        latest_dic["ids"][str(k)] = id
+
+                    if following != latest_dic["followings"][str(k)]:
+                        update_count += 1
+                        follow_count += 1
+                        dump_flag = True
+                        follow_list.add(name)
+
+                        bef = latest_dic["followings"][str(k)]
+
+                        if not(v in ex_follow):
+                            for i in post_channels:
+                                await i.send(name+"のフォロー数が"+str(bef)+"から"+str(following)+"になりました")
+                        print(name+" follow:"+str(following))
+
+                        latest_dic["followings"][str(k)] = following
+
+                    sec = datetime.datetime.now().second
+                    if int(my_round(sec, -1)/10) % 2 == 0:
+                        if fav != latest_dic["favorites"][str(k)]:
+                            update_count += 1
+                            iine_count += 1
+                            dump_flag = True
+                            iine_list.add(name)
+                            msg = ''
+                            if fav > 0:
+                                msg, id = get_fav_tweet(v)
+
+                            bef = latest_dic["favorites"][str(k)]
+
+                            if not (v in ex_iine):
+                                for i in post_channels:
+                                    await i.send(name+"のいいね数が"+str(bef)+"から"+str(fav)+"になりました")
+
+                            print(name+" fav:"+str(fav))
+
+                            latest_dic["favorites"][str(k)] = fav
+
+                    # print(dump_flag)
+                    if dump_flag == True:
+                        with open(sys.argv[1], "w") as f:
+                            try:
+                                json.dump(latest_dic, f, indent=4)
+                                print("dumped")
+                            except Exception as e:
+                                print(e)
+
+            min = datetime.datetime.now().minute
+
+            if (min % 15) == 0:
+                if fefteen_flag == False:
+                    fefteen_flag = True
+                    if update_count == 0:
+                        for i in post_channels:
+                            await i.send('[BOT]この15分間で各Twitterアカウントに変化はありませんでした')
+                    else:
+                        for i in post_channels:
+                            iine = str(iine_list) if len(
+                                iine_list) != 0 else ""
+                            fol = str(follow_list) if len(
+                                follow_list) != 0 else ""
+                            await i.send('[BOT]この15分間で各Twitterアカウントに更新が'+str(update_count)+'件ありました（内いいね'+str(iine_count)+'件（'+iine+'）、フォロー'+str(follow_count)+'件（'+fol+'））')
+                    update_count = 0
+                    iine_count = 0
+                    follow_count = 0
+                    iine_list.clear()
+                    follow_list.clear()
 
             else:
-                dump_flag = False
-                if id != latest_dic["ids"][str(k)]:
-                    update_count += 1
-                    dump_flag = True
-                    print(text)
-                    for i in post_channels:
-                        await i.send(text)
+                fefteen_flag = False
 
-                    latest_dic["ids"][str(k)] = id
+            await asyncio.sleep(10)
 
-                if following != latest_dic["followings"][str(k)]:
-                    update_count += 1
-                    follow_count += 1
-                    dump_flag = True
-                    follow_list.add(name)
+    async def on_ready(self):
+        print('We have logged in as {0.user}'.format(client))
 
-                    bef = latest_dic["followings"][str(k)]
+    async def on_guild_available(self, guild):
+        print("Task")
 
-                    if not(v in ex_follow):
-                        for i in post_channels:
-                            await i.send(name+"のフォロー数が"+str(bef)+"から"+str(following)+"になりました")
-                    print(name+" follow:"+str(following))
+        for task in asyncio.all_tasks():
+            print(task.get_name())
+            if task.get_name() == guild.name:
+                task.cancel()
+                print("Task Stop")
 
-                    latest_dic["followings"][str(k)] = following
+        print("Connected :"+guild.name)
 
-                sec = datetime.datetime.now().second
-                if int(my_round(sec, -1)/10) % 2 == 0:
-                    if fav != latest_dic["favorites"][str(k)]:
-                        update_count += 1
-                        iine_count += 1
-                        dump_flag = True
-                        iine_list.add(name)
-                        msg = ''
-                        if fav > 0:
-                            msg, id = get_fav_tweet(v)
+        task = asyncio.create_task(self.worker(guild))
+        task.set_name(guild.name)
+        print(asyncio.all_tasks())
+        # await task
+        print("started")
 
-                        bef = latest_dic["favorites"][str(k)]
+    async def on_message(self, message):
+        #print('Message from {0.author}: {0.content}'.format(message))
+        if message.author == client.user:
+            return
 
-                        if not (v in ex_iine):
-                            for i in post_channels:
-                                await i.send(name+"のいいね数が"+str(bef)+"から"+str(fav)+"になりました")
+        # if message.content.startswith('$hello'):
+        #     await message.channel.send('Hello!')
 
-                        print(name+" fav:"+str(fav))
+    async def on_guild_unavailable(self, guild):
+        print("Guild Unavailable: " + guild.name)
+        for task in asyncio.all_tasks():
+            print(task.get_name())
+            if task.get_name() == guild.name:
+                task.cancel()
 
-                        latest_dic["favorites"][str(k)] = fav
-
-                # print(dump_flag)
-                if dump_flag == True:
-                    with open(sys.argv[1], "w") as f:
-                        try:
-                            json.dump(latest_dic, f, indent=4)
-                            print("dumped")
-                        except Exception as e:
-                            print(e)
-
-        min = datetime.datetime.now().minute
-
-        if (min % 15) == 0:
-            if fefteen_flag == False:
-                fefteen_flag = True
-                if update_count == 0:
-                    for i in post_channels:
-                        await i.send('[BOT]この15分間で各Twitterアカウントに変化はありませんでした')
-                else:
-                    for i in post_channels:
-                        iine = str(iine_list) if len(iine_list) != 0 else ""
-                        fol = str(follow_list) if len(follow_list) != 0 else ""
-                        await i.send('[BOT]この15分間で各Twitterアカウントに更新が'+str(update_count)+'件ありました（内いいね'+str(iine_count)+'件（'+iine+'）、フォロー'+str(follow_count)+'件（'+fol+'））')
-                update_count = 0
-                iine_count = 0
-                follow_count = 0
-                iine_list.clear()
-                follow_list.clear()
-
-        else:
-            fefteen_flag = False
-
-        await asyncio.sleep(10)
-
-
-@ client.event
-async def on_ready():
-    print('We have logged in as {0.user}'.format(client))
-
-
-@ client.event
-async def on_guild_available(guild):
-    print("Task")
-
-    for task in asyncio.all_tasks():
-        print(task.get_name())
-        if task.get_name() == guild.name:
-            task.cancel()
-            print("Task Stop")
-
-    print("Connected :"+guild.name)
-
-    task = asyncio.create_task(worker(guild))
-    task.set_name(guild.name)
-    print(asyncio.all_tasks())
-    # await task
-    print("started")
-
-
-@ client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-
-    # print(message.content)
-    # print(asyncio.current_task())
-    if message.content.startswith('$hello'):
-        await message.channel.send('Hello!')
-
-
-@ client.event
-async def on_guild_unavailable(guild):
-    print("Disconnected: " + guild.name)
-    for task in asyncio.all_tasks():
-        print(task.get_name())
-        if task.get_name() == guild.name:
-            task.cancel()
+    async def on_disconnect(self):
+        print("Disconnected")
+        for task in asyncio.all_tasks():
+            print(task.get_name())
+            if task.get_name() in self.guilds.name:
+                print(self.guilds.name)
+                task.cancel()
 
 
 if __name__ == '__main__':
+    client = MiyaClient()
     client.run(config.DISCORD_TOKEN)
