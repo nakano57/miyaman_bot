@@ -283,13 +283,6 @@ class MiyaClient(discord.Client):
         print('We have logged in as {0.user}'.format(client))
 
     async def on_guild_available(self, guild):
-        print("Task")
-
-        for task in asyncio.all_tasks():
-            print(task.get_name())
-            if task.get_name() == guild.name:
-                task.cancel()
-                print("Task Stop")
 
         print("Connected :"+guild.name)
 
@@ -320,7 +313,7 @@ class MiyaClient(discord.Client):
         for task in asyncio.all_tasks():
             print(task.get_name())
             if task.get_name() in names:
-                print(names)
+                print("Canceled: "+str(names))
                 task.cancel()
 
 
