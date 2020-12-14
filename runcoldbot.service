@@ -1,0 +1,15 @@
+#/etc/systemd/system/runcoldbot.service
+[Unit]
+Description = coldbot
+
+[Service]
+ExecStart = /home/pi/ProjectColdBot/bot.py /home/pi/ProjectColdBot/ids.json
+# 再起動設定
+Restart = always
+Type = simple
+User = pi
+Group = pi
+
+
+[Install]
+WantedBy = multi-user.target
