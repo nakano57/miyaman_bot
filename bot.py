@@ -165,9 +165,6 @@ class MiyaClient(discord.Client):
     fefteen_flag = False
 
     async def tweet_report(self, post_channels):
-        print("update: " + datetime.datetime.now().isoformat() +
-              " count = "+str(self.update_count))
-
         for k, v in dic.items():
             text, id = get_latest_tweet(v)
             following, name, fav = get_followings(v)
@@ -265,12 +262,22 @@ class MiyaClient(discord.Client):
 
         print(post_channels)
 
-        schedule.every(11).seconds.do(self.tweet_report, (self, post_channels))
-        schedule.every().minute.at(":15").do(self.regular_report, (self, post_channels))
-
         while True:
-            schedule.run_pending()
-            await asyncio.sleep(1)
+            print("update" + datetime.datetime.now().isoformat() +
+                  " count = "+str(self.update_count))
+
+            await self.tweet_report(post_channels)
+
+            min = datetime.datetime.now().minute
+
+            if (min % 15) == 0:
+                if self.fefteen_flag == False:
+                    self.fefteen_flag = True
+                    await self.regular_report(post_channels)
+            else:
+                self.fefteen_flag = False
+
+            await asyncio.sleep(10)
 
     async def on_ready(self):
         print('We have logged in as {0.user}'.format(client))
@@ -309,10 +316,11 @@ class MiyaClient(discord.Client):
 
     async def on_disconnect(self):
         print("Disconnected")
+        names = [i.name for i in self.guilds]
         for task in asyncio.all_tasks():
             print(task.get_name())
-            if task.get_name() in self.guilds.name:
-                print(self.guilds.name)
+            if task.get_name() in names:
+                print(names)
                 task.cancel()
 
 
