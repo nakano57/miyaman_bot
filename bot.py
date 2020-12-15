@@ -172,7 +172,7 @@ class MiyaClient(discord.Client):
                 reset = get_limit()
                 dt = datetime.datetime.fromtimestamp(reset)
                 for i in post_channels:
-                    await i.send("[BOT]"+text+" Twitterのリミット制限。一旦休憩します。（再開:{}）".format(dt))
+                    await i.send("[BOT] Twitterのリミット制限。一旦休憩します。（再開:{}）".format(dt))
 
                 await asyncio.sleep(int(reset)-int(time.time()))
 
@@ -313,7 +313,7 @@ class MiyaClient(discord.Client):
                 task.cancel()
                 print("Canceled: "+str(names))
         print("Stopped")
-        sys.exit(0)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
