@@ -35,13 +35,16 @@ dic = {0: "binarycity_i",
        7: "hikari_miyaman",
        8: "reaper_surveill",
        9: "Ft3oh35Hy51d",
-       10: "waruichigo"
+       10: "waruichigo",
+       11: "reiko_blueislan",
+       12: "retanihoshino"
        }
 
 #ex_iine = ["aoshima_rokusen", "actress_nanano"]
 ex_iine = []
 #ex_follow = ["actress_nanano"]
 ex_follow = []
+ex_rt = []
 
 init_json = {"ids": dic, "followings": dic, "favorites": dic}
 
@@ -156,10 +159,10 @@ def my_round(val, digit=0):
 
 class MiyaClient(discord.Client):
 
-    update_count = 0
-    iine_count = 0
+    # update_count = 0
+    # iine_count = 0
     iine_list = set()
-    follow_count = 0
+    # follow_count = 0
     follow_list = set()
     fefteen_flag = False
 
@@ -179,7 +182,7 @@ class MiyaClient(discord.Client):
             else:
                 dump_flag = False
                 if id != latest_dic["ids"][str(k)]:
-                    self.update_count += 1
+                    latest_dic["flags"]["update_count"] += 1
                     dump_flag = True
                     print(text)
                     for i in post_channels:
@@ -188,8 +191,9 @@ class MiyaClient(discord.Client):
                     latest_dic["ids"][str(k)] = id
 
                 if following != latest_dic["followings"][str(k)]:
-                    self.update_count += 1
-                    self.follow_count += 1
+                    latest_dic["flags"]["update_count"] += 1
+                    latest_dic["flags"]["follow_count"] += 1
+
                     dump_flag = True
                     self.follow_list.add(name)
 
@@ -205,8 +209,9 @@ class MiyaClient(discord.Client):
                 sec = datetime.datetime.now().second
                 if int(my_round(sec, -1)/10) % 2 == 0:
                     if fav != latest_dic["favorites"][str(k)]:
-                        self.update_count += 1
-                        self.iine_count += 1
+                        latest_dic["flags"]["update_count"] += 1
+                        latest_dic["flags"]["iine_count"] += 1
+
                         dump_flag = True
                         self.iine_list.add(name)
                         msg = ''
@@ -233,21 +238,26 @@ class MiyaClient(discord.Client):
                             print(e)
 
     async def regular_report(self, post_channels):
-        if self.update_count == 0:
+        if latest_dic["flags"]["update_count"] == 0:
             for i in post_channels:
                 await i.send('[BOT]この15分間で各Twitterアカウントに変化はありませんでした')
         else:
             for i in post_channels:
-                iine = str(self.iine_list) if len(
+                iine = str(latest_dic["flags"]["iine_list"]) if len(
                     self.iine_list) != 0 else ""
-                fol = str(self.follow_list) if len(
+                fol = str(latest_dic["flags"]["follow_list"]) if len(
                     self.follow_list) != 0 else ""
-                await i.send('[BOT]この15分間で各Twitterアカウントに更新が'+str(self.update_count)+'件ありました（内いいね'+str(self.iine_count)+'件（'+iine+'）、フォロー'+str(self.follow_count)+'件（'+fol+'））')
-        self.update_count = 0
-        self.iine_count = 0
-        self.follow_count = 0
-        self.iine_list.clear()
-        self.follow_list.clear()
+                await i.send('[BOT]この15分間で各Twitterアカウントに更新が'+str(latest_dic["flags"]["update_count"])+'件ありました（内いいね'+str(latest_dic["flags"]["iine_count"])+'件、フォロー'+str(latest_dic["flags"]["follow_count"])+'件）')
+        latest_dic["flags"]["update_count"] = 0
+        latest_dic["flags"]["iine_count"] = 0
+        latest_dic["flags"]["follow_count"] = 0
+
+        with open(sys.argv[1], "w") as f:
+            try:
+                json.dump(latest_dic, f, indent=4)
+                print("dumped")
+            except Exception as e:
+                print(e)
 
     async def worker(self, guild):
         post_channels = []
@@ -256,14 +266,15 @@ class MiyaClient(discord.Client):
             if i.name in post_channel_config:
                 post_channels.append(i)
 
-        for i in post_channels:
-            await i.send('[BOT]RESTART')
+        # for i in post_channels:
+        #     await i.send('[BOT]RESTART')
 
         print(post_channels)
 
         while True:
+            start = time.time()
             print("update: " + datetime.datetime.now().isoformat() +
-                  " count = "+str(self.update_count))
+                  " count = "+str(latest_dic["flags"]["update_count"]))
 
             await self.tweet_report(post_channels)
 
@@ -276,7 +287,9 @@ class MiyaClient(discord.Client):
             else:
                 self.fefteen_flag = False
 
-            await asyncio.sleep(10)
+            diff = time.time()-start
+            if diff < len(dic):
+                await asyncio.sleep(len(dic)-diff)
 
     async def on_ready(self):
         print('We have logged in as {0.user}'.format(client))
