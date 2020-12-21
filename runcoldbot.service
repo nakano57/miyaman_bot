@@ -1,4 +1,4 @@
-#/etc/systemd/system/runcoldbot.service
+#copy to /etc/systemd/system/runcoldbot.service
 [Unit]
 Description = coldbot
 
