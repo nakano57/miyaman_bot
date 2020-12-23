@@ -37,7 +37,8 @@ dic = {0: "binarycity_i",
        9: "Ft3oh35Hy51d",
        10: "waruichigo",
        11: "reiko_blueislan",
-       12: "retanihoshino"
+       12: "retanihoshino",
+       13: "castleseven_aya"
        }
 
 #ex_iine = ["aoshima_rokusen", "actress_nanano"]
@@ -165,6 +166,7 @@ class MiyaClient(discord.Client):
     # follow_count = 0
     follow_list = set()
     fefteen_flag = False
+    post_once = False
 
     async def tweet_report(self, post_channels):
         for k, v in dic.items():
@@ -259,8 +261,51 @@ class MiyaClient(discord.Client):
             except Exception as e:
                 print(e)
 
+    async def life_report(self, post_channels):
+        dt = datetime.datetime.now()
+        msg = '[BOT] '
+
+        if dt.weekday() != 5 and dt.weekday() != 6:
+            if dt.hour == 8 and dt.minute == 30:
+                msg += '始業時刻です。おはようございます。'
+            elif dt.hour == 8 and dt.minute == 40:
+                msg += 'HRの時間です。'
+            elif dt.hour >= 8 and dt.hour <= 12:
+                if dt.minute == 50 and dt.hour != 12:
+                    msg += f'{dt.hour-7}校時が開始しました。'
+                elif dt.minute == 40 and dt.hour == 12:
+                    msg += '4校時が終了し、昼休みになりました。'
+                elif dt.minute == 40 and dt.hour != 8:
+                    msg += f'{dt.hour-8}校時が終了しました。'
+            elif dt.hour >= 13 and dt.hour <= 15:
+                if dt.minute == 25 and dt.hour == 13:
+                    msg += '昼休みが終わり、5校時が開始しました。'
+                elif dt.minute == 25 and dt.hour != 15:
+                    msg += f'{dt.hour-8}校時が開始しました。'
+                elif dt.minute == 15 and dt.hour != 13:
+                    msg += f'{dt.hour-9}校時が終了しました。'
+                    if dt.weekday() != 2 and dt.weekday() != 3 and dt.hour == 15:
+                        msg += '今日の授業はこれで終わりです、お疲れ様でした。'
+            if dt.weekday() == 2 or dt.weekday() == 3:
+                if dt.hour == 15 and dt.minute == 25:
+                    msg += '7校時が開始しました。'
+                elif dt.hour == 16 and dt.minute == 25:
+                    msg += '7校時が終了しました。今日の授業はこれで終わりです、お疲れ様でした。'
+
+        if msg != '[BOT] ':
+            if self.post_once == True:
+                self.post_once = False
+                for i in post_channels:
+                    await i.send(msg)
+                print(msg+dt.isoformat())
+        else:
+            self.post_once = True
+
+        return self.post_once
+
     async def worker(self, guild):
         post_channels = []
+        f = False
         # print(guild.text_channels)
         for i in guild.text_channels:
             if i.name in post_channel_config:
@@ -287,9 +332,11 @@ class MiyaClient(discord.Client):
             else:
                 self.fefteen_flag = False
 
+            # await self.life_report(post_channels)
+
             diff = time.time()-start
             if diff < len(dic):
-                await asyncio.sleep(len(dic)-diff)
+                await asyncio.sleep(len(dic)-diff+0.5)
 
     async def on_ready(self):
         print('We have logged in as {0.user}'.format(client))
@@ -326,6 +373,8 @@ class MiyaClient(discord.Client):
                 task.cancel()
                 print("Canceled: "+str(names))
         print("Stopped")
+
+        # 接続が切れた時は潔く死んでsystemdに蘇生してもらう
         sys.exit(1)
 
 
