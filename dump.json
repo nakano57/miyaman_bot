@@ -52,6 +52,7 @@
         "iine_count": 0,
         "iine_list": "",
         "follow_count": 0,
+        "send_enable": 0,
         "follow_list": ""
     },
     "statuses_count": {
