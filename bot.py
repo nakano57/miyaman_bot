@@ -9,6 +9,7 @@ import sys
 import asyncio
 import time
 import queue
+import re
 
 # config.pyを用意
 import config
@@ -54,6 +55,9 @@ init_json = {"ids": dic, "followings": dic,
 
 # post_channel_config = ['考察1st', 'bot用','｢reaper｣-｢unknown｣-｢i｣監視']
 post_channel_config = ['twitter監視ch']
+
+pattern = '.*(タスケテ|たすけて|助けて|救けて)(ロボット|ろぼっと)(くん|君|クン).*'
+repatter = re.compile(pattern)
 
 with open(sys.argv[1]) as f:
     try:
@@ -192,7 +196,7 @@ class MiyaClient(discord.Client):
                 dt = datetime.datetime.fromtimestamp(reset)
 
                 self.q.put("[BOT] Twitterのリミット制限。一旦休憩します。（再開:{}）".format(dt))
-                return int(reset)-int(time.time())
+                return abs(int(reset)-int(time.time()))
 
             else:
 
@@ -296,7 +300,7 @@ class MiyaClient(discord.Client):
             if i.name in post_channel_config:
                 post_channels.append(i)
 
-        #self.q.put('[BOT]RESTART')
+        # self.q.put('[BOT]RESTART')
 
         print(post_channels)
 
@@ -350,12 +354,12 @@ class MiyaClient(discord.Client):
         print("Started")
 
     async def on_message(self, message):
-        #print('Message from {0.author}: {0.content}'.format(message))
         if message.author == client.user:
             return
 
-        # if message.content.startswith('$hello'):
-        #     await message.channel.send('Hello!')
+        result = repatter.match(message.content)
+        if result:
+            await message.channel.send(':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ')
 
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
