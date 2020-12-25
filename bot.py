@@ -64,38 +64,6 @@ with open(sys.argv[1]) as f:
     print(latest_dic)
 
 
-def get_latest_tweet(screen_name):
-
-    params = {
-        'count': 1,
-        'screen_name': screen_name,
-        'exclude_replies': 'false'
-    }
-    res = twitter.get(url, params=params)
-
-    message = ''
-    id = 0
-
-    # 死神だけは何も返ってこない
-    if res.text == '':
-        print(res.text)
-
-    if res.status_code == 200:  # 正常通信出来た場合
-        timelines = json.loads(res.text)  # レスポンスからタイムラインリストを取得
-
-        for line in timelines:  # タイムラインリストをループ処理
-
-            message += 'https://twitter.com/{0}/status/{1}'.format(
-                screen_name, line['id_str'])
-            id = line['id']
-
-    else:  # 正常通信出来なかった場合
-        message = "Failed: %d" % res.status_code
-        id = -1
-
-    return message, id
-
-
 def get_latest_tweets(screen_name, idx, count):
 
     params = {
@@ -328,7 +296,7 @@ class MiyaClient(discord.Client):
             if i.name in post_channel_config:
                 post_channels.append(i)
 
-        # self.q.put('[BOT]RESTART')
+        #self.q.put('[BOT]RESTART')
 
         print(post_channels)
 
