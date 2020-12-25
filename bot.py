@@ -122,7 +122,7 @@ def get_latest_tweets(screen_name, idx, count):
             latest_dic["statuses_count"][str(idx)] = statuses_count
             if n > 1:
                 msg, id = get_latest_tweets(screen_name, idx, n)
-                message.append(msg)
+                message.extend(msg)
                 return message, id
 
         for line in timelines:  # タイムラインリストをループ処理
@@ -362,6 +362,7 @@ class MiyaClient(discord.Client):
                     msg = self.q.get()
                     print(msg)
                     await i.send(msg)
+                await asyncio.sleep(0.5)
 
             diff = time.time()-start
             if diff < len(dic):
