@@ -96,6 +96,7 @@ def get_latest_tweet(screen_name):
     return message, id
 
 
+# URL をリストで返したい
 def get_latest_tweets(screen_name, idx, count):
 
     params = {
