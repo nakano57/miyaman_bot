@@ -96,7 +96,6 @@ def get_latest_tweet(screen_name):
     return message, id
 
 
-# URL をリストで返したい
 def get_latest_tweets(screen_name, idx, count):
 
     params = {
@@ -121,13 +120,13 @@ def get_latest_tweets(screen_name, idx, count):
             n = statuses_count - latest_dic["statuses_count"][str(idx)]
             latest_dic["statuses_count"][str(idx)] = statuses_count
             if n > 1:
-                msg, id = get_latest_tweets(screen_name, idx, n)
-                message.extend(msg)
+                message, id = get_latest_tweets(screen_name, idx, n)
+                message.reverse()
                 return message, id
 
         for line in timelines:  # タイムラインリストをループ処理
 
-            message.append('https://twitter.com/{0}/status/{1}\n'.format(
+            message.append('https://twitter.com/{0}/status/{1}'.format(
                 screen_name, line['id_str']))
             if id == 0:
                 id = line['id']
@@ -214,9 +213,10 @@ class MiyaClient(discord.Client):
     post_once = False
     q = queue.Queue()
 
-    async def tweet_report(self, post_channels):
+    def tweet_report(self):
+
         for k, v in dic.items():
-            text, id = get_latest_tweet(v)
+            urls, id = get_latest_tweets(v, k, 1)
             following, name, fav = get_followings(v)
 
             if id < 0 or following < 0:
@@ -224,15 +224,15 @@ class MiyaClient(discord.Client):
                 dt = datetime.datetime.fromtimestamp(reset)
 
                 self.q.put("[BOT] Twitterのリミット制限。一旦休憩します。（再開:{}）".format(dt))
-
-                await asyncio.sleep(int(reset)-int(time.time()))
+                return int(reset)-int(time.time())
 
             else:
 
                 if id != latest_dic["ids"][str(k)]:
                     latest_dic["flags"]["update_count"] += 1
 
-                    self.q.put(text)
+                    for i in urls:
+                        self.q.put(i)
 
                     latest_dic["ids"][str(k)] = id
 
@@ -257,9 +257,9 @@ class MiyaClient(discord.Client):
                         latest_dic["flags"]["iine_count"] += 1
 
                         self.iine_list.add(name)
-                        msg = ''
+
                         if fav > 0:
-                            msg, id = get_fav_tweet(v)
+                            _, id = get_fav_tweet(v)
 
                         bef = latest_dic["favorites"][str(k)]
 
@@ -268,8 +268,9 @@ class MiyaClient(discord.Client):
                                        "から"+str(fav)+"になりました")
 
                         latest_dic["favorites"][str(k)] = fav
+        return 0
 
-    async def regular_report(self, post_channels):
+    def regular_report(self):
         if latest_dic["flags"]["update_count"] == 0:
             self.q.put('[BOT]この15分間で各Twitterアカウントに変化はありませんでした')
         else:
@@ -279,7 +280,7 @@ class MiyaClient(discord.Client):
         latest_dic["flags"]["iine_count"] = 0
         latest_dic["flags"]["follow_count"] = 0
 
-    async def life_report(self, post_channels):
+    def life_report(self):
         dt = datetime.datetime.now()
         msg = '[BOT] '
 
@@ -327,27 +328,28 @@ class MiyaClient(discord.Client):
             if i.name in post_channel_config:
                 post_channels.append(i)
 
-        self.q.put('[BOT]RESTART')
+        # self.q.put('[BOT]RESTART')
 
         print(post_channels)
 
         while True:
+
             start = time.time()
             print("update: " + datetime.datetime.now().isoformat() +
                   " count = "+str(latest_dic["flags"]["update_count"]))
 
-            await self.tweet_report(post_channels)
+            wait = self.tweet_report()
 
             min = datetime.datetime.now().minute
 
             if (min % 15) == 0:
                 if self.fefteen_flag == False:
                     self.fefteen_flag = True
-                    await self.regular_report(post_channels)
+                    self.regular_report()
             else:
                 self.fefteen_flag = False
 
-             # await self.life_report(post_channels)
+             # self.life_report()
 
             if not self.q.empty():
                 with open(sys.argv[1], "w") as f:
@@ -366,7 +368,7 @@ class MiyaClient(discord.Client):
 
             diff = time.time()-start
             if diff < len(dic):
-                await asyncio.sleep(len(dic)-diff+0.5)
+                await asyncio.sleep(len(dic)-diff+0.5+wait)
 
     async def on_ready(self):
         print('We have logged in as {0.user}'.format(client))
