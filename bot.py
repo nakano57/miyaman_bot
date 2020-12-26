@@ -14,7 +14,7 @@ import re
 # config.pyを用意
 import config
 
-MODEL_NO_2_ENABLE = False  # 2号くんモードにする場合はTrue
+MODEL_NO_2_ENABLE = False  # 2号くんモードにする場合は True
 MODEL_NO_1_ID = '#3307'  # 1号くん判別用
 
 CK = config.CONSUMER_KEY
@@ -61,6 +61,8 @@ post_channel_config = ['twitter監視ch']
 
 pattern = '.*(タスケテ|たすけて|助けて|救けて)(ロボット|ろぼっと)(くん|君|クン).*'
 repatter = re.compile(pattern)
+
+force_dic_write = False
 
 with open(sys.argv[1]) as f:
     try:
@@ -300,6 +302,7 @@ class MiyaClient(discord.Client):
         return self.post_once
 
     async def worker(self, guild):
+        global force_dic_write
         post_channels = []
         f = False
         # print(guild.text_channels)
@@ -339,7 +342,8 @@ class MiyaClient(discord.Client):
 
              # self.life_report()
 
-            if not self.q.empty():
+            if force_dic_write or (not self.q.empty()):
+                force_dic_write = False
                 with open(sys.argv[1], "w") as f:
                     try:
                         json.dump(latest_dic, f, indent=4)
@@ -376,6 +380,7 @@ class MiyaClient(discord.Client):
         print("Started")
 
     async def on_message(self, message):
+        global latest_dic, force_dic_write
         if message.author == client.user:
             return
 
@@ -403,6 +408,7 @@ class MiyaClient(discord.Client):
             print('1号くんの発言検知')
             if latest_dic["flags"]["send_enable"] != 0:
                 latest_dic["flags"]["send_enable"] = 0
+                force_dic_write = True
                 no1_name = str(message.author)
                 no1_name = no1_name[:no1_name.rfind('#')]
                 await message.channel.send('{0}が戻ってきたので黙ります'.format(no1_name))
