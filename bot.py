@@ -14,6 +14,9 @@ import re
 # config.pyを用意
 import config
 
+MODEL_NO_2_ENABLE = False  # 2号くんモードにする場合はTrue
+MODEL_NO_1_ID = '#3307'  # 1号くん判別用
+
 CK = config.CONSUMER_KEY
 CS = config.CONSUMER_SECRET
 AT = config.ACCESS_TOKEN
@@ -185,6 +188,10 @@ class MiyaClient(discord.Client):
     post_once = False
     q = queue.Queue()
 
+    # 2号くん用
+    no2_msg = []
+    last_send_time = time.time()
+
     def tweet_report(self):
 
         for k, v in dic.items():
@@ -312,6 +319,15 @@ class MiyaClient(discord.Client):
 
             wait = self.tweet_report()
 
+            if MODEL_NO_2_ENABLE:
+                if (start - self.last_send_time) > 16.5 * 60:
+                    if latest_dic["flags"]["send_enable"] == 0:
+                        latest_dic["flags"]["send_enable"] = 1
+                        self.q.put('ガガガ')
+                        for s in self.no2_msg:
+                            self.q.put(s)
+                        self.no2_msg.clear()
+
             min = datetime.datetime.now().minute
 
             if (min % 15) == 0:
@@ -335,7 +351,13 @@ class MiyaClient(discord.Client):
                 for i in post_channels:
                     msg = self.q.get()
                     print(msg)
-                    await i.send(msg)
+                    if MODEL_NO_2_ENABLE:
+                        if latest_dic["flags"]["send_enable"] == 1:
+                            await i.send(msg)
+                        else:
+                            self.no2_msg.append(msg)
+                    else:
+                        await i.send(msg)
                 await asyncio.sleep(0.5)
 
             diff = time.time()-start
@@ -360,6 +382,26 @@ class MiyaClient(discord.Client):
         result = repatter.match(message.content)
         if result:
             await message.channel.send(':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ')
+
+
+        # ここから2号くん用
+        if MODEL_NO_2_ENABLE != True:
+            return
+
+        if str(message.channel) != post_channel_config[0]:
+            return
+
+        if MODEL_NO_1_ID in str(message.author):  # 1号くんの発言があった
+            self.last_send_time = time.time()
+            self.no2_msg.clear()
+            if latest_dic["flags"]["send_enable"] != 0:
+                latest_dic["flags"]["send_enable"] = 0
+                no1_name = str(message.author)
+                no1_name = no1_name[:no1_name.rfind('#')]
+                await message.channel.send('{0}が戻ってきたので黙ります'.format(no1_name))
+
+        # if message.content.startswith('$hello'):
+        #     await message.channel.send('Hello!')
 
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
