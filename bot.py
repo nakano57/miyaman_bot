@@ -15,7 +15,8 @@ import os
 # config.pyを用意
 import config
 
-MODEL_NO_2_ENABLE = False  # 2号くんモードにする場合はTrue
+MODEL_NO_2_ENABLE = False  # 2号くんモードにする場合は True
+MODEL_NO_1_ID = '#3307'  # 1号くん判別用
 
 CK = config.CONSUMER_KEY
 CS = config.CONSUMER_SECRET
@@ -62,6 +63,8 @@ post_channel_config = ['twitter監視ch']
 pattern = '.*(タスケテ|たすけて|助けて|救けて)(ロボット|ろぼっと)(くん|君|クン).*'
 repatter = re.compile(pattern)
 
+force_dic_write = False
+
 with open(sys.argv[1]) as f:
     try:
         latest_dic = json.load(f)
@@ -107,6 +110,7 @@ def get_latest_tweets(screen_name, idx, count):
                 id = line['id']
 
     else:  # 正常通信出来なかった場合
+        print('正常通信出来なかった場合: get_latest_tweets')
         message = "Failed: %d" % res.status_code
         id = -1
 
@@ -143,6 +147,7 @@ def get_followings(screen_name):
         name = following["name"]
         fav = following["favourites_count"]
     else:  # 正常通信出来なかった場合
+        print('正常通信出来なかった場合: get_followings')
         ret = -1
 
     return ret, name, fav
@@ -187,6 +192,10 @@ class MiyaClient(discord.Client):
     fefteen_flag = False
     post_once = False
     q = queue.Queue()
+
+    # 2号くん用
+    no2_msg = []
+    last_send_time = time.time()
 
     def tweet_report(self):
 
@@ -301,6 +310,7 @@ class MiyaClient(discord.Client):
             self.q.queue.clear()
 
     async def worker(self, guild):
+        global force_dic_write
         post_channels = []
         f = False
         # print(guild.text_channels)
@@ -326,6 +336,10 @@ class MiyaClient(discord.Client):
 
             wait = self.tweet_report()
 
+            if MODEL_NO_2_ENABLE:
+                if (start - self.last_send_time) > 16.5 * 60:
+                    self.no2_wake('ガガガ')
+
             min = datetime.datetime.now().minute
 
             if (min % 15) == 0:
@@ -337,7 +351,8 @@ class MiyaClient(discord.Client):
 
              # self.life_report()
 
-            if not self.q.empty():
+            if force_dic_write or (not self.q.empty()):
+                force_dic_write = False
                 with open(sys.argv[1], "w") as f:
                     try:
                         json.dump(latest_dic, f, indent=4)
@@ -349,7 +364,12 @@ class MiyaClient(discord.Client):
                 for i in post_channels:
                     msg = self.q.get()
                     print(msg)
-                    if MODEL_NO_2_ENABLE != True or latest_dic["flags"]["send_enable"] == 1:
+                    if MODEL_NO_2_ENABLE:
+                        if latest_dic["flags"]["send_enable"] == 1:
+                            await i.send(msg)
+                        else:
+                            self.no2_msg.append(msg)
+                    else:
                         await i.send(msg)
                 await asyncio.sleep(0.5)
 
@@ -372,9 +392,66 @@ class MiyaClient(discord.Client):
         if message.author == client.user:
             return
 
-        result = repatter.match(message.content)
-        if result:
-            await message.channel.send(':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ')
+        # 1号くん用
+        if MODEL_NO_2_ENABLE == False:
+            result = repatter.match(message.content)
+            if result:
+                await message.channel.send(':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ')
+
+
+
+        # ここから2号くん用
+        if MODEL_NO_2_ENABLE != True:
+            return
+
+
+
+        # ここから監視ch用（2号くん）
+        if str(message.channel) != post_channel_config[0]:
+            return
+
+        if str(message.content) == '2号くん起きて':
+            print('起きて発言検知')
+            self.no2_wake('起きました')
+            return
+
+        if str(message.content) == '2号くんお疲れさま':
+            print('お疲れさま発言検知')
+            if self.no2_rest():
+                await message.channel.send('ありがとうございます。休憩に入ります')
+            return
+
+        if MODEL_NO_1_ID in str(message.author):  # 1号くんの発言があった
+            print('1号くんの発言検知')
+            no1_name = str(message.author)
+            no1_name = no1_name[:no1_name.rfind('#')]
+            if self.no2_rest():
+                await message.channel.send('{0}が戻ってきたので休憩します'.format(no1_name))
+
+        # if message.content.startswith('$hello'):
+        #     await message.channel.send('Hello!')
+
+    def no2_rest(self):
+        global latest_dic, force_dic_write
+        self.last_send_time = time.time()
+        self.no2_msg.clear()
+        if latest_dic["flags"]["send_enable"] != 0:
+            latest_dic["flags"]["send_enable"] = 0
+            force_dic_write = True
+            return True
+        return False
+
+    def no2_wake(self, comment=''):
+        global latest_dic
+        if latest_dic["flags"]["send_enable"] == 0:
+            latest_dic["flags"]["send_enable"] = 1
+            if comment != '':
+                self.q.put(comment)
+            for s in self.no2_msg:
+                self.q.put(s)
+            self.no2_msg.clear()
+            return True
+        return False
 
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
