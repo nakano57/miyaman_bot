@@ -347,6 +347,7 @@ class MiyaClient(discord.Client):
                     no1_name = gmem.name
                     if gmem.raw_status == 'online':
                         if self.no2_rest():
+                            # すでに休憩モードに入っているのでqueueに入れてもダメなのでsend
                             for i in post_channels:
                                 await i.send('あ、{0}がオンラインになりましたね。休憩します'.format(no1_name))
                     else:
@@ -417,7 +418,7 @@ class MiyaClient(discord.Client):
             return
 
         # ここから監視ch用（2号くん）
-        if str(message.channel) != post_channel_config[0]:
+        if not str(message.channel) in post_channel_config:
             return
 
         if str(message.content) == '2号くん起きて':
