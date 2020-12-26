@@ -16,7 +16,7 @@ import os
 import config
 
 MODEL_NO_2_ENABLE = False  # 2号くんモードにする場合は True
-MODEL_NO_1_ID = '#3307'  # 1号くん判別用
+MODEL_NO_1_ID = 783629981548412948  # 1号くん判別用 783629981548412948   [B]:756287897719668776　2号くん:791528352342212688
 
 CK = config.CONSUMER_KEY
 CS = config.CONSUMER_SECRET
@@ -340,6 +340,19 @@ class MiyaClient(discord.Client):
                 if (start - self.last_send_time) > 16.5 * 60:
                     self.no2_wake('ガガガ')
 
+                gmem = guild.get_member(MODEL_NO_1_ID)
+                if gmem:
+                    # print(gmem.raw_status)
+                    no1_name = gmem.name
+                    if gmem.raw_status == 'online':
+                        if self.no2_rest():
+                            for i in post_channels:
+                                await i.send('あ、{0}がオンラインになりましたね。休憩します'.format(no1_name))
+                    else:
+                        self.no2_wake('あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
+                else:
+                    self.no2_wake()
+
             min = datetime.datetime.now().minute
 
             if (min % 15) == 0:
@@ -421,11 +434,11 @@ class MiyaClient(discord.Client):
                 await message.channel.send('ありがとうございます。休憩に入ります')
             return
 
-        if MODEL_NO_1_ID in str(message.author):  # 1号くんの発言があった
+        if client.user.id == MODEL_NO_1_ID:  # 1号くんの発言があった
             print('1号くんの発言検知')
-            no1_name = str(message.author)
-            no1_name = no1_name[:no1_name.rfind('#')]
+            no1_name = message.author.name
             if self.no2_rest():
+                print('休憩します')
                 await message.channel.send('{0}が戻ってきたので休憩します'.format(no1_name))
 
         # if message.content.startswith('$hello'):
@@ -475,5 +488,11 @@ class MiyaClient(discord.Client):
 
 
 if __name__ == '__main__':
-    client = MiyaClient()
+    if MODEL_NO_2_ENABLE:
+        intents = discord.Intents.default()
+        intents.presences = True
+        intents.members = True
+        client = MiyaClient(intents=intents)
+    else:
+        client = MiyaClient()
     client.run(config.DISCORD_TOKEN)
