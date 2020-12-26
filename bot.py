@@ -341,14 +341,17 @@ class MiyaClient(discord.Client):
                     self.no2_wake('ガガガ')
 
                 gmem = guild.get_member(MODEL_NO_1_ID)
-                # print(gmem.raw_status)
-                no1_name = gmem.name
-                if gmem.raw_status == 'online':
-                    if self.no2_rest():
-                        for i in post_channels:
-                            await i.send('あ、{0}がオンラインになりましたね。休憩します'.format(no1_name))
+                if gmem:
+                    # print(gmem.raw_status)
+                    no1_name = gmem.name
+                    if gmem.raw_status == 'online':
+                        if self.no2_rest():
+                            for i in post_channels:
+                                await i.send('あ、{0}がオンラインになりましたね。休憩します'.format(no1_name))
+                    else:
+                        self.no2_wake('あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
                 else:
-                    self.no2_wake('あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
+                    self.no2_wake()
 
             min = datetime.datetime.now().minute
 
