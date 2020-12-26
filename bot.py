@@ -14,6 +14,8 @@ import re
 # config.pyを用意
 import config
 
+MODEL_NO_2_ENABLE = False  # 2号くんモードにする場合はTrue
+
 CK = config.CONSUMER_KEY
 CS = config.CONSUMER_SECRET
 AT = config.ACCESS_TOKEN
@@ -335,7 +337,8 @@ class MiyaClient(discord.Client):
                 for i in post_channels:
                     msg = self.q.get()
                     print(msg)
-                    await i.send(msg)
+                    if MODEL_NO_2_ENABLE != True or latest_dic["flags"]["send_enable"] == 1:
+                        await i.send(msg)
                 await asyncio.sleep(0.5)
 
             diff = time.time()-start
