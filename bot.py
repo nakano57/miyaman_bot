@@ -379,21 +379,28 @@ class MiyaClient(discord.Client):
         if message.author == client.user:
             return
 
-        result = repatter.match(message.content)
-        if result:
-            await message.channel.send(':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ')
+        # 1号くん用
+        if MODEL_NO_2_ENABLE == False:
+            result = repatter.match(message.content)
+            if result:
+                await message.channel.send(':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ')
+
 
 
         # ここから2号くん用
         if MODEL_NO_2_ENABLE != True:
             return
 
+
+
+        # ここから監視ch用（2号くん）
         if str(message.channel) != post_channel_config[0]:
             return
 
         if MODEL_NO_1_ID in str(message.author):  # 1号くんの発言があった
             self.last_send_time = time.time()
             self.no2_msg.clear()
+            print('1号くんの発言検知')
             if latest_dic["flags"]["send_enable"] != 0:
                 latest_dic["flags"]["send_enable"] = 0
                 no1_name = str(message.author)
