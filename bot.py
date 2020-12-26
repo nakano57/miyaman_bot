@@ -10,6 +10,7 @@ import asyncio
 import time
 import queue
 import re
+import os
 
 # config.pyを用意
 import config
@@ -294,6 +295,11 @@ class MiyaClient(discord.Client):
 
         return self.post_once
 
+    def update_json(self):
+        self.tweet_report()
+        with self.q.mutex:
+            self.q.queue.clear()
+
     async def worker(self, guild):
         post_channels = []
         f = False
@@ -305,6 +311,12 @@ class MiyaClient(discord.Client):
         # self.q.put('[BOT]RESTART')
 
         print(post_channels)
+
+        # dump.jsonが15分以上更新されてなかった時、死んでたと判断しsendせずjsonだけをアップデート
+        json_update_time = os.stat(sys.argv[1]).st_mtime
+        if (json_update_time - time.time())/60 > 15:
+            print("json updated")
+            self.update_json()
 
         while True:
 
