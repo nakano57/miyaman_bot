@@ -1,4 +1,5 @@
 #copy to /etc/systemd/system/runcoldbot.service
+#sudo systemctl enable runcoldbot.service
 [Unit]
 Description = coldbot
 
