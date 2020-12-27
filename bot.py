@@ -15,7 +15,7 @@ import os
 # config.pyを用意
 import config
 
-MODEL_NO_2_ENABLE = False  # 2号くんモードにする場合は True
+MODEL_NO_2_ENABLE = config.MODEL_NO_2_ENABLE  # 2号くんモードにする場合は True
 # 1号くん判別用 783629981548412948   [B]:756287897719668776　2号くん:791528352342212688
 MODEL_NO_1_ID = 783629981548412948
 
