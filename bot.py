@@ -61,7 +61,7 @@ init_json = {"ids": dic, "followings": dic,
 # post_channel_config = ['考察1st', 'bot用','｢reaper｣-｢unknown｣-｢i｣監視']
 post_channel_config = ['twitter監視ch']
 
-pattern = '.*(タスケテ|たすけて|助けて|救けて)(ロボット|ろぼっと)(くん|君|クン).*'
+pattern = '(ロボット|ろぼっと)(くん|君|クン)(タスケテ|たすけて|助けて|救けて).*'
 repatter = re.compile(pattern)
 nnkw = '(ロボット|ろぼっと)(くん|君|クン).*ななかわ.*'
 nkpatter = re.compile(nnkw)
@@ -80,6 +80,7 @@ with open(sys.argv[1]) as f:
 
     if MODEL_NO_2_ENABLE:
         print('\n！！！！　2号くんモードです　！！！！\n')
+
 
 def get_latest_tweets(screen_name, idx, count):
 
@@ -362,7 +363,8 @@ class MiyaClient(discord.Client):
                     else:
                         offline_cnt = offline_cnt + 1
                         if offline_cnt > 1:
-                            self.no2_wake('あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
+                            self.no2_wake(
+                                'あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
                 else:
                     self.no2_wake()
 
