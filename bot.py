@@ -63,6 +63,10 @@ post_channel_config = ['twitter監視ch']
 
 pattern = '.*(タスケテ|たすけて|助けて|救けて)(ロボット|ろぼっと)(くん|君|クン).*'
 repatter = re.compile(pattern)
+nnkw = '(ロボット|ろぼっと)(くん|君|クン).*ななかわ.*'
+nkpatter = re.compile(nnkw)
+ryry = '(ロボット|ろぼっと)(くん|君|クン).*りやりや.*'
+rypatter = re.compile(ryry)
 
 force_dic_write = False
 
@@ -236,7 +240,7 @@ class MiyaClient(discord.Client):
                     latest_dic["followings"][str(k)] = following
 
                 sec = datetime.datetime.now().second
-                if int(my_round(sec, -1)/10) % 2 == 0:
+                if int(my_round(sec, -1)/10) % 3 == 0:
                     if fav != latest_dic["favorites"][str(k)]:
                         latest_dic["flags"]["update_count"] += 1
                         latest_dic["flags"]["iine_count"] += 1
@@ -412,6 +416,12 @@ class MiyaClient(discord.Client):
             result = repatter.match(message.content)
             if result:
                 await message.channel.send(':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ')
+            result = nkpatter.match(message.content)
+            if result:
+                await message.channel.send('ナナカワ！')
+            result = rypatter.match(message.content)
+            if result:
+                await message.channel.send('リヤリヤ！')
 
         # ここから2号くん用
         if MODEL_NO_2_ENABLE != True:
