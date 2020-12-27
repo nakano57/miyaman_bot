@@ -15,7 +15,7 @@ import os
 # config.pyを用意
 import config
 
-MODEL_NO_2_ENABLE = False  # 2号くんモードにする場合は True
+MODEL_NO_2_ENABLE = config.MODEL_NO_2_ENABLE  # 2号くんモードにする場合は True
 # 1号くん判別用 783629981548412948   [B]:756287897719668776　2号くん:791528352342212688
 MODEL_NO_1_ID = 783629981548412948
 
@@ -74,6 +74,8 @@ with open(sys.argv[1]) as f:
 
     print(latest_dic)
 
+    if MODEL_NO_2_ENABLE:
+        print('\n！！！！　2号くんモードです　！！！！\n')
 
 def get_latest_tweets(screen_name, idx, count):
 
@@ -312,6 +314,8 @@ class MiyaClient(discord.Client):
 
     async def worker(self, guild):
         global force_dic_write
+        time_cnt = 0
+        offline_cnt = 0
         post_channels = []
         f = False
         # print(guild.text_channels)
@@ -337,23 +341,28 @@ class MiyaClient(discord.Client):
 
             wait = self.tweet_report()
 
-            if MODEL_NO_2_ENABLE:
+            if MODEL_NO_2_ENABLE and (time_cnt % 6) == 0:
                 if (start - self.last_send_time) > 16.5 * 60:
                     self.no2_wake('ガガガ')
 
                 gmem = guild.get_member(MODEL_NO_1_ID)
                 if gmem:
                     # print(gmem.raw_status)
-                    no1_name = gmem.name
+                    no1_name = '1号'  # gmem.name
                     if gmem.raw_status == 'online':
+                        offline_cnt = 0
                         if self.no2_rest():
                             # すでに休憩モードに入っているのでqueueに入れてもダメなのでsend
                             for i in post_channels:
-                                await i.send('あ、{0}がオンラインになりましたね。休憩します'.format(no1_name))
+                                await i.send('あ、{0}が戻りましたね。休憩します'.format(no1_name))
                     else:
-                        self.no2_wake('あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
+                        offline_cnt = offline_cnt + 1
+                        if offline_cnt > 1:
+                            self.no2_wake('あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
                 else:
                     self.no2_wake()
+
+            time_cnt = (time_cnt + 1) % 30000
 
             min = datetime.datetime.now().minute
 
@@ -434,7 +443,7 @@ class MiyaClient(discord.Client):
 
         if client.user.id == MODEL_NO_1_ID:  # 1号くんの発言があった
             print('1号くんの発言検知')
-            no1_name = message.author.name
+            no1_name = '1号'  # message.author.name
             if self.no2_rest():
                 print('休憩します')
                 await message.channel.send('{0}が戻ってきたので休憩します'.format(no1_name))
