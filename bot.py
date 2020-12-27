@@ -74,6 +74,8 @@ with open(sys.argv[1]) as f:
 
     print(latest_dic)
 
+    if MODEL_NO_2_ENABLE:
+        print('\n！！！！　2号くんモードです　！！！！\n')
 
 def get_latest_tweets(screen_name, idx, count):
 
