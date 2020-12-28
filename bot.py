@@ -18,6 +18,11 @@ import config
 MODEL_NO_2_ENABLE = config.MODEL_NO_2_ENABLE  # 2号くんモードにする場合は True
 # 1号くん判別用 783629981548412948   [B]:756287897719668776　2号くん:791528352342212688
 MODEL_NO_1_ID = 783629981548412948
+MODEL_NO_2_ID = 791528352342212688
+
+MODEL_NO_1_ENABLE = False if MODEL_NO_2_ENABLE else True
+my_model_no = 1 if MODEL_NO_1_ENABLE else 2
+partner_model_no = 3 - my_model_no
 
 CK = config.CONSUMER_KEY
 CS = config.CONSUMER_SECRET
@@ -67,6 +72,28 @@ nnkw = '(ロボット|ろぼっと)(くん|君|クン).*ななかわ.*'
 nkpatter = re.compile(nnkw)
 ryry = '(ロボット|ろぼっと)(くん|君|クン).*りやりや.*'
 rypatter = re.compile(ryry)
+
+
+# 監視chのみで使えるコマンド
+repatter_sys = []
+pattern_base_sys1 = '(1号|１号)(くん|君|クン)'
+pattern_base_sys2 = '(2号|２号)(くん|君|クン)'
+pattern_list_sys = [
+    # 1号くん
+    [pattern_base_sys1 + '.*(おやすみ|オヤスミ|お休み|寝て|眠って).*', '[SLEEP]', 1, 1],
+    [pattern_base_sys1 + '.*(おきて|起きて).*', '[SLEEP]', 1, 0],
+    # 2号くん
+    [pattern_base_sys2 + '.*(おやすみ|オヤスミ|お休み|寝て|眠って).*', '[SLEEP]', 2, 1],
+    [pattern_base_sys2 + '.*(おきて|起きて).*', '[SLEEP]', 2, 0],
+    [pattern_base_sys2 + '.*(働いて|仕事して).*', '[WAKE2]', 0, 0],
+    [pattern_base_sys2 + '.*(おつかれ|お疲れ|休憩して|休んで).*', '[REST2]', 0, 0],
+                 ]
+
+sleep_msg = [['オハヨウ！', 'おはようございます'], ['オヤスミ！', 'おやすみなさい']]
+
+for i in pattern_list_sys:
+    repatter_sys.append([re.compile(i[0]+'.*'), i[1], i[2], i[3]])
+
 
 force_dic_write = False
 
@@ -356,15 +383,15 @@ class MiyaClient(discord.Client):
                     no1_name = '1号'  # gmem.name
                     if gmem.raw_status == 'online':
                         offline_cnt = 0
-                        if self.no2_rest():
-                            # すでに休憩モードに入っているのでqueueに入れてもダメなのでsend
-                            for i in post_channels:
-                                await i.send('あ、{0}が戻りましたね。休憩します'.format(no1_name))
+                        if latest_dic["flags"]["sleep_mode_partner"] == 0:
+                            if self.no2_rest():
+                                # すでに休憩モードに入っているのでqueueに入れてもダメなのでsend
+                                for i in post_channels:
+                                    await i.send('あ、{0}が戻りましたね。休憩します'.format(no1_name))
                     else:
                         offline_cnt = offline_cnt + 1
                         if offline_cnt > 1:
-                            self.no2_wake(
-                                'あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
+                            self.no2_wake('あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
                 else:
                     self.no2_wake()
 
@@ -394,13 +421,14 @@ class MiyaClient(discord.Client):
                 for i in post_channels:
                     msg = self.q.get()
                     print(msg)
-                    if MODEL_NO_2_ENABLE:
-                        if latest_dic["flags"]["send_enable"] == 1:
-                            await i.send(msg)
+                    if latest_dic["flags"]["sleep_mode"] == 0:
+                        if MODEL_NO_2_ENABLE:
+                            if latest_dic["flags"]["send_enable"] == 1:
+                                await i.send(msg)
+                            else:
+                                self.no2_msg.append(msg)
                         else:
-                            self.no2_msg.append(msg)
-                    else:
-                        await i.send(msg)
+                            await i.send(msg)
                 await asyncio.sleep(0.5)
 
             diff = time.time()-start
@@ -434,34 +462,88 @@ class MiyaClient(discord.Client):
             if result:
                 await message.channel.send('リヤリヤ！')
 
-        # ここから2号くん用
-        if MODEL_NO_2_ENABLE != True:
-            return
-
-        # ここから監視ch用（2号くん）
+        # ここから監視ch用
         if not str(message.channel) in post_channel_config:
             return
 
-        if str(message.content) == '2号くん起きて':
-            print('起きて発言検知')
-            self.no2_wake('起きました')
-            return
+        for r in repatter_sys:
+            if r[0].match(message.content):
+                await self.exec_sys_command(message, r[1], r[2], r[3])
 
-        if str(message.content) == '2号くんお疲れさま':
-            print('お疲れさま発言検知')
+        if my_model_no == 1 and client.user.id == MODEL_NO_2_ID:  # 2号くんの発言があった
+            await self.check_partner_message(message)
+
+        if my_model_no == 2 and client.user.id == MODEL_NO_1_ID:  # 1号くんの発言があった
+            await self.check_partner_message(message)
+
+
+    # 相棒からのメッセージを調べる
+    async def check_partner_message(self, message):
+        global latest_dic, force_dic_write
+        if message.content == sleep_msg[0][partner_model_no-1]:  # おはよう
+            print('partner_sleep=0')
+            if latest_dic["flags"]["sleep_mode_partner"] != 0:
+                latest_dic["flags"]["sleep_mode_partner"] = 0
+                force_dic_write = True
+            if my_model_no == 2:
+                if self.no2_rest():
+                    await message.channel.send('おはようございます1号。では休憩に入ります')
+
+        elif message.content == sleep_msg[1][partner_model_no-1]:  # おやすみ
+            print('partner_sleep=1')
+            if latest_dic["flags"]["sleep_mode_partner"] != 1:
+                latest_dic["flags"]["sleep_mode_partner"] = 1
+                force_dic_write = True
+                if my_model_no == 2:
+                    self.no2_wake('おやすみなさい1号。では引き継ぎます')
+        else:
+            if my_model_no == 2:
+                if latest_dic["flags"]["sleep_mode_partner"] == 0:
+                    if self.no2_rest():
+                        print('休憩します')
+                        no1_name = '1号'  # message.author.name
+                        await message.channel.send('{0}が戻ってきたので休憩します'.format(no1_name))
+
+
+    # 監視chのコマンドを実行
+    async def exec_sys_command(self, message, cmd, arg1, arg2):
+        print(cmd, arg1, arg2)
+        if cmd == '[SLEEP]':
+            await self.set_sleep_mode(message, arg1, arg2)
+
+        elif cmd == '[REST2]':
             if self.no2_rest():
                 await message.channel.send('ありがとうございます。休憩に入ります')
+
+        elif cmd == '[WAKE2]':
+            self.no2_wake('戻りました')
+
+
+    # スリープモードの変更
+    async def set_sleep_mode(self, message, model_no, onoff):
+        global latest_dic, force_dic_write
+        if my_model_no != model_no:
             return
 
-        if client.user.id == MODEL_NO_1_ID:  # 1号くんの発言があった
-            print('1号くんの発言検知')
-            no1_name = '1号'  # message.author.name
-            if self.no2_rest():
-                print('休憩します')
-                await message.channel.send('{0}が戻ってきたので休憩します'.format(no1_name))
+        if latest_dic["flags"]["sleep_mode"] == onoff:
+            return
 
+        latest_dic["flags"]["sleep_mode"] = onoff
+        force_dic_write = True
+        print('sleep_mode={0}'.format(onoff))
+
+        if onoff == 1:
+            await message.channel.send(sleep_msg[onoff][model_no-1])
+        else:
+            self.q.put(sleep_msg[onoff][model_no - 1])
+
+
+    # 2号くんを休憩させる
     def no2_rest(self):
         global latest_dic, force_dic_write
+        if latest_dic["flags"]["sleep_mode_partner"] != 0:
+            self.q.put('いえ。1号が寝ているので続けます')
+            return False
         self.last_send_time = time.time()
         self.no2_msg.clear()
         if latest_dic["flags"]["send_enable"] != 0:
@@ -470,8 +552,11 @@ class MiyaClient(discord.Client):
             return True
         return False
 
+
+    # 2号くんを休憩から戻す
     def no2_wake(self, comment=''):
         global latest_dic
+        latest_dic["flags"]["sleep_mode"] = 0
         if latest_dic["flags"]["send_enable"] == 0:
             latest_dic["flags"]["send_enable"] = 1
             if comment != '':
@@ -481,6 +566,7 @@ class MiyaClient(discord.Client):
             self.no2_msg.clear()
             return True
         return False
+
 
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
