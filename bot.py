@@ -365,6 +365,8 @@ class MiyaClient(discord.Client):
             print("json updated")
             self.update_json()
 
+        # await self.message_statistics(guild, 24)
+
         while True:
 
             start = time.time()
@@ -566,6 +568,23 @@ class MiyaClient(discord.Client):
             self.no2_msg.clear()
             return True
         return False
+
+
+    # メッセージ統計出力
+    async def message_statistics(self, guild, hours):
+        msg_cnt = {}
+        aftertime = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
+        for c in guild.text_channels:
+            # print('\n【{0}】 after={1}'.format(c.name, aftertime))
+            messages = await c.history(limit=None, after=aftertime).flatten()
+            for h in messages:
+                # print('{2}({3}): {0}:{1}'.format(h.content, h.created_at, h.author.name, h.author.id))
+                msg_cnt.setdefault(str(h.author.id), 0)
+                msg_cnt[str(h.author.id)] += 1
+        all_num = 0
+        for ii in msg_cnt.values():
+            all_num += ii
+        print('直近{0}時間で、発言者数は{1}名でした。総発言数は{2}です'.format(hours, len(msg_cnt), all_num))
 
 
     async def on_guild_unavailable(self, guild):
