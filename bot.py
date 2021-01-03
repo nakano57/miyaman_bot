@@ -575,12 +575,13 @@ class MiyaClient(discord.Client):
         msg_cnt = {}
         aftertime = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
         for c in guild.text_channels:
-            # print('\n【{0}】 after={1}'.format(c.name, aftertime))
-            messages = await c.history(limit=None, after=aftertime).flatten()
-            for h in messages:
-                # print('{2}({3}): {0}:{1}'.format(h.content, h.created_at, h.author.name, h.author.id))
-                msg_cnt.setdefault(str(h.author.id), 0)
-                msg_cnt[str(h.author.id)] += 1
+            # print('【{0}】 {1}'.format(c.name, c.id))
+            if c.id != 780767711545786388 and c.id != 783661317834670090:  # 参加  監視ch
+                messages = await c.history(limit=None, after=aftertime).flatten()
+                for h in messages:
+                    # print('{2}({3}): {0}:{1}'.format(h.content, h.created_at, h.author.name, h.author.id))
+                    msg_cnt.setdefault(str(h.author.id), 0)
+                    msg_cnt[str(h.author.id)] += 1
         all_num = 0
         for ii in msg_cnt.values():
             all_num += ii
