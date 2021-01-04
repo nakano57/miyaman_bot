@@ -53,6 +53,9 @@ dic = {0: "binarycity_i",
        13: "castleseven_aya"
        }
 
+provisional_line = 14  # dic内のこの番号以降、2号くんが暫定措置として代わりに発言する
+PROV_STR = '[PROV] '
+
 #ex_iine = ["aoshima_rokusen", "actress_nanano"]
 ex_iine = []
 #ex_follow = ["actress_nanano"]
@@ -120,6 +123,7 @@ def get_latest_tweets(screen_name, idx, count):
 
     message = []
     id = 0
+    provisional_str = PROV_STR if idx >= provisional_line and my_model_no == 2 else ''
 
     # 死神だけは何も返ってこない
     if res.text == '':
@@ -139,8 +143,8 @@ def get_latest_tweets(screen_name, idx, count):
 
         for line in timelines:  # タイムラインリストをループ処理
 
-            message.append('https://twitter.com/{0}/status/{1}'.format(
-                screen_name, line['id_str']))
+            message.append('{2}https://twitter.com/{0}/status/{1}'.format(
+                screen_name, line['id_str'], provisional_str))
             if id == 0:
                 id = line['id']
 
@@ -227,6 +231,7 @@ class MiyaClient(discord.Client):
     fefteen_flag = False
     post_once = False
     q = queue.Queue()
+    q2 = queue.Queue()
 
     # 2号くん用
     no2_msg = []
@@ -251,7 +256,10 @@ class MiyaClient(discord.Client):
                     latest_dic["flags"]["update_count"] += 1
 
                     for i in urls:
-                        self.q.put(i)
+                        if PROV_STR in i:
+                            self.q2.put(i)
+                        else:
+                            self.q.put(i)
 
                     latest_dic["ids"][str(k)] = id
 
@@ -365,7 +373,7 @@ class MiyaClient(discord.Client):
             print("json updated")
             self.update_json()
 
-        # await self.message_statistics(guild, 24)
+        # await self.message_statistics(guild, 48)
 
         while True:
 
@@ -431,6 +439,16 @@ class MiyaClient(discord.Client):
                                 self.no2_msg.append(msg)
                         else:
                             await i.send(msg)
+                await asyncio.sleep(0.5)
+            # 暫定発言措置
+            if MODEL_NO_2_ENABLE:
+                while not self.q2.empty():
+                    for i in post_channels:
+                        msg = self.q2.get()
+                        msg = msg[len(PROV_STR):]
+                        print('[Provisional] '+msg)
+                        await i.send(msg)
+                        force_dic_write = True
                 await asyncio.sleep(0.5)
 
             diff = time.time()-start
