@@ -69,13 +69,17 @@ init_json = {"ids": dic, "followings": dic,
 # post_channel_config = ['考察1st', 'bot用','｢reaper｣-｢unknown｣-｢i｣監視']
 post_channel_config = ['twitter監視ch']
 
-pattern = '(ロボット|ろぼっと)(くん|君|クン)(タスケテ|たすけて|助けて|救けて).*'
-repatter = re.compile(pattern)
-nnkw = '(ロボット|ろぼっと)(くん|君|クン).*ななかわ.*'
-nkpatter = re.compile(nnkw)
-ryry = '(ロボット|ろぼっと)(くん|君|クン).*りやりや.*'
-rypatter = re.compile(ryry)
+repatter1 = []
+pattern_base1 = '(ロボット|ろぼっと)(くん|君|クン)'
+pattern_list1 = [
+    ['ななかわ', 'ナナカワ！'],
+    ['りやりや', 'リヤリヤ！'],
+    ['(タスケテ|たすけて|助けて|救けて)', ':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ'],
+    ['(参加).*(数|何人|何名|おしえて|教えて)', '[NO2_COUNT]'],
+]
 
+for i in pattern_list1:
+    repatter1.append([re.compile(pattern_base1+'.*'+i[0]+'.*'), i[1]])
 
 # 監視chのみで使えるコマンド
 repatter_sys = []
@@ -90,7 +94,7 @@ pattern_list_sys = [
     [pattern_base_sys2 + '.*(おきて|起きて).*', '[SLEEP]', 2, 0],
     [pattern_base_sys2 + '.*(働いて|仕事して).*', '[WAKE2]', 0, 0],
     [pattern_base_sys2 + '.*(おつかれ|お疲れ|休憩して|休んで).*', '[REST2]', 0, 0],
-                 ]
+]
 
 sleep_msg = [['オハヨウ！', 'おはようございます'], ['オヤスミ！', 'おやすみなさい']]
 
@@ -373,6 +377,8 @@ class MiyaClient(discord.Client):
             print("json updated")
             self.update_json()
 
+        # self.update_json()  # 強制更新したい場合用
+        # print('現在のサーバー参加者総数：{0}名\n'.format(guild.member_count))
         # await self.message_statistics(guild, 48)
 
         while True:
@@ -470,17 +476,14 @@ class MiyaClient(discord.Client):
         if message.author == client.user:
             return
 
-        # 1号くん用
-        if MODEL_NO_2_ENABLE == False:
-            result = repatter.match(message.content)
+        # 参加者からのメッセージ対応
+        for r in repatter1:
+            result = r[0].match(message.content)
             if result:
-                await message.channel.send(':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ')
-            result = nkpatter.match(message.content)
-            if result:
-                await message.channel.send('ナナカワ！')
-            result = rypatter.match(message.content)
-            if result:
-                await message.channel.send('リヤリヤ！')
+                if my_model_no == 1:
+                    await self.no1_message(message, r[1])
+                elif my_model_no == 2:
+                    await self.no2_message(message, r[1])
 
         # ここから監視ch用
         if not str(message.channel) in post_channel_config:
@@ -537,6 +540,24 @@ class MiyaClient(discord.Client):
 
         elif cmd == '[WAKE2]':
             self.no2_wake('戻りました')
+
+
+    # 参加者からのメッセージ対応（1号くん）
+    async def no1_message(self, message, cmd):
+        if '[NO2' in cmd:  # 2号くん用なので無視
+            return
+        elif '[NO1' in cmd:  # コマンド
+            print('未実装')
+        else:  # そのまま発言する
+            await message.channel.send(cmd)
+
+
+    # 参加者からのメッセージ対応（2号くん）
+    async def no2_message(self, message, cmd):
+        # print(cmd)
+        # 基本的には1号くん優先なので大体は無視
+        if cmd == '[NO2_COUNT]':
+            await message.channel.send('現在のサーバー参加者総数は{0}名です'.format(message.guild.member_count))
 
 
     # スリープモードの変更
