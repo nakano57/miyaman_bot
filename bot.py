@@ -76,6 +76,8 @@ pattern_list1 = [
     ['りやりや', 'リヤリヤ！'],
     ['(タスケテ|たすけて|助けて|救けて)', ':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ'],
     ['(参加).*(数|何人|何名|おしえて|教えて)', '[NO2_COUNT]'],
+    ['(とらとら|トラトラ)', '[NO2_MSG]トラトラ！'],
+    ['(いちなな|イチナナ)', '[NO2_MSG]すみません。現在未実装です'],
 ]
 
 for i in pattern_list1:
@@ -378,7 +380,7 @@ class MiyaClient(discord.Client):
             self.update_json()
 
         # self.update_json()  # 強制更新したい場合用
-        # print('現在のサーバー参加者総数：{0}名\n'.format(guild.member_count))
+        print('現在のサーバー参加者総数：{0}名\n'.format(guild.member_count))
         # await self.message_statistics(guild, 48)
 
         while True:
@@ -406,7 +408,7 @@ class MiyaClient(discord.Client):
                                     await i.send('あ、{0}が戻りましたね。休憩します'.format(no1_name))
                     else:
                         offline_cnt = offline_cnt + 1
-                        if offline_cnt > 1:
+                        if offline_cnt > 2:
                             self.no2_wake('あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
                 else:
                     self.no2_wake()
@@ -558,6 +560,9 @@ class MiyaClient(discord.Client):
         # 基本的には1号くん優先なので大体は無視
         if cmd == '[NO2_COUNT]':
             await message.channel.send('現在のサーバー参加者総数は{0}名です'.format(message.guild.member_count))
+        elif '[NO2_MSG]' in cmd:
+            msg = cmd[len('[NO2_MSG]'):]
+            await message.channel.send(msg)
 
 
     # スリープモードの変更
