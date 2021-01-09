@@ -11,6 +11,7 @@ import time
 import queue
 import re
 import os
+import random
 
 # config.pyを用意
 import config
@@ -76,9 +77,26 @@ pattern_list1 = [
     ['りやりや', 'リヤリヤ！'],
     ['(タスケテ|たすけて|助けて|救けて)', ':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ'],
     ['(参加).*(数|何人|何名|おしえて|教えて)', '[NO2_COUNT]'],
+    # ['(ずがずが|ズガズガ)', '[NO2_MSG]ズガズガ？'],
     ['(とらとら|トラトラ)', '[NO2_MSG]トラトラ！'],
-    ['(いちなな|イチナナ)', '[NO2_MSG]すみません。現在未実装です'],
+    ['(いちなな|イチナナ|なないち|ナナイチ)', '[NO2_MSG]<:m_2_nanano:791168443851604008> :heart: <:m_1_ichigo:791168439301439519>'],
+    ['(りやしず|リヤシズ|しずりや|シズリヤ)', '[NO2_MSG]<:m_3_riya:791168443910848542> :heart: <:m_5_sizu:791168444418359317>'],
+    ['(ひかれい|ヒカレイ|ヒカ玲|レイヒカ|玲ヒカ)', '[NO2_MSG]<:m_4_reiko:791168442966343680> :heart: <:m_6_hikari:791168442748764180>'],
+    ['(どーなつ|ドーナツ|どーなっつ|ドーナッツ)', '[NO2_DOUGHNUT]'],
+    ['(こんにちは|こんにちわ|コンニチハ|コンニチワ)', '[NO2_MSG]こんにちは'],
+    ['(こんばんは|こんばんわ|今晩は|コンバンワ|コンバンハ)', '[NO2_MSG]こんばんは'],
+    ['(癒して|癒やして|いやして)', '[NO2_MSG]すみません。現在未実装です'],
+    ['(ココイチ)', '[NO2_MSG]:curry:'],
+    ['(みやまん|MYMN|ＭＹＭＮ|ｍｙｍｎ|都まんじゅう|みやこまんじゅう)', '[NO2_MYMN]'],
+
 ]
+
+# <:m_1_ichigo:791168439301439519>
+# <:m_2_nanano:791168443851604008>
+# <:m_3_riya:791168443910848542>
+# <:m_4_reiko:791168442966343680>
+# <:m_5_sizu:791168444418359317>
+# <:m_6_hikari:791168442748764180>
 
 for i in pattern_list1:
     repatter1.append([re.compile(pattern_base1+'.*'+i[0]+'.*'), i[1]])
@@ -478,6 +496,9 @@ class MiyaClient(discord.Client):
         if message.author == client.user:
             return
 
+        # if ':m_6_hikari:' in message.content or ':m_4_reiko:' in message.content:
+        #    print(message.content)
+
         # 参加者からのメッセージ対応
         for r in repatter1:
             result = r[0].match(message.content)
@@ -560,10 +581,28 @@ class MiyaClient(discord.Client):
         # 基本的には1号くん優先なので大体は無視
         if cmd == '[NO2_COUNT]':
             await message.channel.send('現在のサーバー参加者総数は{0}名です'.format(message.guild.member_count))
+
         elif '[NO2_MSG]' in cmd:
             msg = cmd[len('[NO2_MSG]'):]
             await message.channel.send(msg)
 
+        elif '[NO2_DOUGHNUT]' in cmd:
+            ds = [':doughnut:', ':bagel:', ':rosette:']
+            di = [0, 0, 0]
+            for j in range(3):
+                r = random.randint(1, 100)
+                di[j] = 1 if r >= 90 else 0
+                di[j] = 2 if r == 55 else di[j]
+            await message.channel.send('{0} {1} {2}'.format(ds[di[0]], ds[di[1]], ds[di[2]]))
+
+        elif '[NO2_MYMN]' in cmd:
+            di = [0, 1, 2, 3, 4, 5]
+            ds = [
+                '<:m_1_ichigo:791168439301439519>', '<:m_2_nanano:791168443851604008>',
+                '<:m_3_riya:791168443910848542>', '<:m_4_reiko:791168442966343680>',
+                '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>']
+            random.shuffle(di)
+            await message.channel.send(ds[di[0]] + ' ' + ds[di[1]] + ' ' + ds[di[2]] + ' ' + ds[di[3]] + ' ' + ds[di[4]] + ' ' + ds[di[5]])
 
     # スリープモードの変更
     async def set_sleep_mode(self, message, model_no, onoff):
