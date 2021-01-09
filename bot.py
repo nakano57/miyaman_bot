@@ -89,6 +89,8 @@ pattern_list1 = [
     ['(ココイチ)', '[NO2_MSG]:curry:'],
     ['(みやまん|MYMN|mymn|ＭＹＭＮ|ｍｙｍｎ|都まんじゅう|みやこまんじゅう)', '[NO2_MYMN]'],
     ['(ごはん|ご飯|御飯|ゴハン)', '[NO2_FOOD]'],
+    ['(おやつ|オヤツ)', '[NO2_SWEETS]'],
+    ['(スロット)', '[NO2_SLOT]'],
 
 ]
 
@@ -605,11 +607,29 @@ class MiyaClient(discord.Client):
             await message.channel.send(ds[0] + ' ' + ds[1] + ' ' + ds[2] + ' ' + ds[3] + ' ' + ds[4] + ' ' + ds[5])
 
         elif '[NO2_FOOD]' in cmd:
-            ds = [':apple:', ':bread:', ':rice:', ':pizza:', ':hamburger:', ':ramen:',
-                  ':spaghetti:', ':meat_on_bone:', ':sushi:', ':hotdog:', ':curry:']
+            ds = [':apple:', ':bread:', ':rice:', ':pizza:', ':hamburger:', ':ramen:', ':sandwich:',
+                  ':spaghetti:', ':meat_on_bone:', ':sushi:', ':hotdog:', ':curry:', ':rice_ball:']
             random.shuffle(ds)
             await message.channel.send('どうぞ')
             await message.channel.send(ds[0])
+
+        elif '[NO2_SWEETS]' in cmd:
+            ds = [':strawberry:' ':cake:', ':doughnut:', ':pancakes:', ':waffle:', ':dango:',
+                  ':cookie:', ':custard:', ':icecream:', ':popcorn:', ':chocolate_bar:',
+                  ':lollipop:', ':rice_cracker:', ':ice_cream:']
+            random.shuffle(ds)
+            await message.channel.send('どうぞ')
+            await message.channel.send(ds[0])
+
+        elif '[NO2_SLOT]' in cmd:
+            ds = [
+                '<:m_1_ichigo:791168439301439519>', '<:m_2_nanano:791168443851604008>',
+                '<:m_3_riya:791168443910848542>', '<:m_4_reiko:791168442966343680>',
+                '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>']
+            s1 = random.randint(0, 5)
+            s2 = random.randint(0, 5)
+            s3 = random.randint(0, 5)
+            await message.channel.send('{0} {1} {2}'.format(ds[s1], ds[s2], ds[s3]))
 
 
     # スリープモードの変更
