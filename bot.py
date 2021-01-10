@@ -71,7 +71,7 @@ init_json = {"ids": dic, "followings": dic,
 post_channel_config = ['twitter監視ch']
 
 repatter1 = []
-pattern_base1 = '(ロボット|ろぼっと)(くん|君|クン)'
+pattern_base1 = '(ロボ|ろぼ)(ット|っと)?(くん|君|クン)'
 pattern_list1 = [
     ['ななかわ', 'ナナカワ！'],
     ['りやりや', 'リヤリヤ！'],
@@ -91,6 +91,7 @@ pattern_list1 = [
     ['(ごはん|ご飯|御飯|ゴハン)', '[NO2_FOOD]'],
     ['(おやつ|オヤツ)', '[NO2_SWEETS]'],
     ['(スロット)', '[NO2_SLOT]'],
+    ['(リーパー|Reaper|reaper|Ｒｅａｐｅｒ|ｒｅａｐｅｒ)', '[NO2_MSG]おやすみなさい！'],
 
 ]
 
@@ -590,7 +591,7 @@ class MiyaClient(discord.Client):
             await message.channel.send(msg)
 
         elif '[NO2_DOUGHNUT]' in cmd:
-            ds = [':doughnut:', ':bagel:', ':rosette:']
+            ds = [':doughnut:', ':bagel:', ':cd:']
             di = [0, 0, 0]
             for j in range(3):
                 r = random.randint(1, 100)
@@ -621,7 +622,7 @@ class MiyaClient(discord.Client):
             await message.channel.send('どうぞ')
             await message.channel.send(ds[0])
 
-        elif '[NO2_SLOT]' in cmd:
+        elif '[NO2_SLOT]' in cmd and not 'フルスロットル' in message.content:
             ds = [
                 '<:m_1_ichigo:791168439301439519>', '<:m_2_nanano:791168443851604008>',
                 '<:m_3_riya:791168443910848542>', '<:m_4_reiko:791168442966343680>',
