@@ -91,7 +91,8 @@ pattern_list1 = [
     ['(ごはん|ご飯|御飯|ゴハン)', '[NO2_FOOD]'],
     ['(おやつ|オヤツ)', '[NO2_SWEETS]'],
     ['(スロット)', '[NO2_SLOT]'],
-    ['(リーパー|Reaper|reaper|Ｒｅａｐｅｒ|ｒｅａｐｅｒ)', '[NO2_MSG]おやすみなさい！'],
+    ['(リーパー|りーぱー|Reaper|reaper|Ｒｅａｐｅｒ|ｒｅａｐｅｒ|REAPER|ＲＥＡＰＥＲ)', '[NO2_MSG]おやすみなさい！'],
+    ['(返事|へんじ)', '[NO2_MSG]はい'],
 
 ]
 
@@ -520,10 +521,10 @@ class MiyaClient(discord.Client):
             if r[0].match(message.content):
                 await self.exec_sys_command(message, r[1], r[2], r[3])
 
-        if my_model_no == 1 and client.user.id == MODEL_NO_2_ID:  # 2号くんの発言があった
+        if my_model_no == 1 and message.author.id == MODEL_NO_2_ID:  # 2号くんの発言があった
             await self.check_partner_message(message)
 
-        if my_model_no == 2 and client.user.id == MODEL_NO_1_ID:  # 1号くんの発言があった
+        if my_model_no == 2 and message.author.id == MODEL_NO_1_ID:  # 1号くんの発言があった
             await self.check_partner_message(message)
 
 
@@ -688,7 +689,7 @@ class MiyaClient(discord.Client):
         aftertime = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
         for c in guild.text_channels:
             # print('【{0}】 {1}'.format(c.name, c.id))
-            if c.id != 780767711545786388 and c.id != 783661317834670090:  # 参加  監視ch
+            if c.id != 780767711545786388 and c.id != 783661317834670090 and c.id != 797467852487393280:  # 参加ch  監視ch  ロボットくんch
                 messages = await c.history(limit=None, after=aftertime).flatten()
                 for h in messages:
                     # print('{2}({3}): {0}:{1}'.format(h.content, h.created_at, h.author.name, h.author.id))
