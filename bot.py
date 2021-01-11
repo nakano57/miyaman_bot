@@ -152,7 +152,11 @@ def get_latest_tweets(screen_name, idx, count):
         'screen_name': screen_name,
         'exclude_replies': 'false'
     }
-    res = twitter.get(url, params=params)
+    try:
+        res = twitter.get(show_user, params=params)
+    except Exception as e:
+        print(e)
+        return e, -1, None, None
 
     message = []
     id = 0
@@ -172,7 +176,8 @@ def get_latest_tweets(screen_name, idx, count):
             n = statuses_count - latest_dic["statuses_count"][str(idx)]
             latest_dic["statuses_count"][str(idx)] = statuses_count
             if n > 1:
-                message, id, profimg, bannerimg = get_latest_tweets(screen_name, idx, n)
+                message, id, profimg, bannerimg = get_latest_tweets(
+                    screen_name, idx, n)
                 message.reverse()
                 return message, id
 
@@ -200,7 +205,11 @@ def get_latest_tweets(screen_name, idx, count):
 
 
 def get_limit():
-    res = twitter.get(limit)
+    try:
+        res = twitter.get(limit)
+    except Exception as e:
+        print(e)
+        return -1
     ret = 0
 
     if res.status_code == 200:  # 正常通信出来た場合
@@ -221,7 +230,7 @@ def get_followings(screen_name):
         res = twitter.get(show_user, params=params)
     except Exception as e:
         print(e)
-        return e,-1
+        return -1, None, None
 
     ret = 0
     fav = 0
@@ -244,7 +253,13 @@ def get_fav_tweet(screen_name):
         'screen_name': screen_name,
         'count': 1
     }
-    res = twitter.get(fav_list, params=params)
+    
+    try:
+        res = twitter.get(fav_list, params=params)
+    except Exception as e:
+        print(e)
+        return None,-1
+
 
     message = ''
     id = 0
