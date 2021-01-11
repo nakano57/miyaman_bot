@@ -153,7 +153,7 @@ def get_latest_tweets(screen_name, idx, count):
         'exclude_replies': 'false'
     }
     try:
-        res = twitter.get(show_user, params=params)
+        res = twitter.get(url, params=params)
     except Exception as e:
         print(e)
         return e, -1, None, None
