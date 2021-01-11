@@ -80,9 +80,12 @@ pattern_list1 = [
     ['(参加).*(数|何人|何名|おしえて|教えて)', '[NO2_COUNT]'],
     # ['(ずがずが|ズガズガ)', '[NO2_MSG]ズガズガ？'],
     ['(とらとら|トラトラ)', '[NO2_MSG]トラトラ！'],
-    ['(いちなな|イチナナ|なないち|ナナイチ)', '[NO2_MSG]<:m_2_nanano:791168443851604008> :heart: <:m_1_ichigo:791168439301439519>'],
-    ['(りやしず|リヤシズ|しずりや|シズリヤ)', '[NO2_MSG]<:m_3_riya:791168443910848542> :heart: <:m_5_sizu:791168444418359317>'],
-    ['(ひかれい|ヒカレイ|ヒカ玲|レイヒカ|玲ヒカ)', '[NO2_MSG]<:m_4_reiko:791168442966343680> :heart: <:m_6_hikari:791168442748764180>'],
+    ['(いちなな|イチナナ|なないち|ナナイチ)',
+     '[NO2_MSG]<:m_2_nanano:791168443851604008> :heart: <:m_1_ichigo:791168439301439519>'],
+    ['(りやしず|リヤシズ|しずりや|シズリヤ)',
+     '[NO2_MSG]<:m_3_riya:791168443910848542> :heart: <:m_5_sizu:791168444418359317>'],
+    ['(ひかれい|ヒカレイ|ヒカ玲|レイヒカ|玲ヒカ)',
+     '[NO2_MSG]<:m_4_reiko:791168442966343680> :heart: <:m_6_hikari:791168442748764180>'],
     ['(どーなつ|ドーナツ|どーなっつ|ドーナッツ)', '[NO2_DOUGHNUT]'],
     ['(こんにちは|こんにちわ|コンニチハ|コンニチワ)', '[NO2_MSG]こんにちは'],
     ['(こんばんは|こんばんわ|今晩は|コンバンワ|コンバンハ)', '[NO2_MSG]こんばんは'],
@@ -149,7 +152,11 @@ def get_latest_tweets(screen_name, idx, count):
         'screen_name': screen_name,
         'exclude_replies': 'false'
     }
-    res = twitter.get(url, params=params)
+    try:
+        res = twitter.get(url, params=params)
+    except Exception as e:
+        print(e)
+        return e, -1, None, None
 
     message = []
     id = 0
@@ -169,7 +176,8 @@ def get_latest_tweets(screen_name, idx, count):
             n = statuses_count - latest_dic["statuses_count"][str(idx)]
             latest_dic["statuses_count"][str(idx)] = statuses_count
             if n > 1:
-                message, id, profimg, bannerimg = get_latest_tweets(screen_name, idx, n)
+                message, id, profimg, bannerimg = get_latest_tweets(
+                    screen_name, idx, n)
                 message.reverse()
                 return message, id
 
@@ -197,7 +205,11 @@ def get_latest_tweets(screen_name, idx, count):
 
 
 def get_limit():
-    res = twitter.get(limit)
+    try:
+        res = twitter.get(limit)
+    except Exception as e:
+        print(e)
+        return -1
     ret = 0
 
     if res.status_code == 200:  # 正常通信出来た場合
@@ -214,7 +226,11 @@ def get_followings(screen_name):
     params = {
         'screen_name': screen_name,
     }
-    res = twitter.get(show_user, params=params)
+    try:
+        res = twitter.get(show_user, params=params)
+    except Exception as e:
+        print(e)
+        return -1, None, None
 
     ret = 0
     fav = 0
@@ -237,7 +253,13 @@ def get_fav_tweet(screen_name):
         'screen_name': screen_name,
         'count': 1
     }
-    res = twitter.get(fav_list, params=params)
+    
+    try:
+        res = twitter.get(fav_list, params=params)
+    except Exception as e:
+        print(e)
+        return None,-1
+
 
     message = ''
     id = 0
@@ -461,7 +483,8 @@ class MiyaClient(discord.Client):
                     else:
                         offline_cnt = offline_cnt + 1
                         if offline_cnt > 2:
-                            self.no2_wake('あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
+                            self.no2_wake(
+                                'あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
                 else:
                     self.no2_wake()
 
@@ -556,8 +579,8 @@ class MiyaClient(discord.Client):
         if my_model_no == 2 and message.author.id == MODEL_NO_1_ID:  # 1号くんの発言があった
             await self.check_partner_message(message)
 
-
     # 相棒からのメッセージを調べる
+
     async def check_partner_message(self, message):
         global latest_dic, force_dic_write
         if message.content == sleep_msg[0][partner_model_no-1]:  # おはよう
@@ -584,8 +607,8 @@ class MiyaClient(discord.Client):
                         no1_name = '1号'  # message.author.name
                         await message.channel.send('{0}が戻ってきたので休憩します'.format(no1_name))
 
-
     # 監視chのコマンドを実行
+
     async def exec_sys_command(self, message, cmd, arg1, arg2):
         print(cmd, arg1, arg2)
         if cmd == '[SLEEP]':
@@ -598,8 +621,8 @@ class MiyaClient(discord.Client):
         elif cmd == '[WAKE2]':
             self.no2_wake('戻りました')
 
-
     # 参加者からのメッセージ対応（1号くん）
+
     async def no1_message(self, message, cmd):
         if '[NO2' in cmd:  # 2号くん用なので無視
             return
@@ -608,8 +631,8 @@ class MiyaClient(discord.Client):
         else:  # そのまま発言する
             await message.channel.send(cmd)
 
-
     # 参加者からのメッセージ対応（2号くん）
+
     async def no2_message(self, message, cmd):
         # print(cmd)
         # 基本的には1号くん優先なので大体は無視
@@ -662,8 +685,8 @@ class MiyaClient(discord.Client):
             s3 = random.randint(0, 5)
             await message.channel.send('{0} {1} {2}'.format(ds[s1], ds[s2], ds[s3]))
 
-
     # スリープモードの変更
+
     async def set_sleep_mode(self, message, model_no, onoff):
         global latest_dic, force_dic_write
         if my_model_no != model_no:
@@ -681,8 +704,8 @@ class MiyaClient(discord.Client):
         else:
             self.q.put(sleep_msg[onoff][model_no - 1])
 
-
     # 2号くんを休憩させる
+
     def no2_rest(self):
         global latest_dic, force_dic_write
         if latest_dic["flags"]["sleep_mode_partner"] != 0:
@@ -696,8 +719,8 @@ class MiyaClient(discord.Client):
             return True
         return False
 
-
     # 2号くんを休憩から戻す
+
     def no2_wake(self, comment=''):
         global latest_dic
         latest_dic["flags"]["sleep_mode"] = 0
@@ -711,8 +734,8 @@ class MiyaClient(discord.Client):
             return True
         return False
 
-
     # メッセージ統計出力
+
     async def message_statistics(self, guild, hours):
         msg_cnt = {}
         aftertime = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
@@ -727,8 +750,8 @@ class MiyaClient(discord.Client):
         all_num = 0
         for ii in msg_cnt.values():
             all_num += ii
-        print('直近{0}時間で、発言者数は{1}名でした。総発言数は{2}です'.format(hours, len(msg_cnt), all_num))
-
+        print('直近{0}時間で、発言者数は{1}名でした。総発言数は{2}です'.format(
+            hours, len(msg_cnt), all_num))
 
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
