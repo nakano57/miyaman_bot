@@ -53,6 +53,8 @@
         "iine_list": "",
         "follow_count": 0,
         "send_enable": 0,
+        "sleep_mode": 0,
+        "sleep_mode_partner": 0,
         "follow_list": ""
     },
     "statuses_count": {
