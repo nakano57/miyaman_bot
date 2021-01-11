@@ -217,7 +217,11 @@ def get_followings(screen_name):
     params = {
         'screen_name': screen_name,
     }
-    res = twitter.get(show_user, params=params)
+    try:
+        res = twitter.get(show_user, params=params)
+    except Exception as e:
+        print(e)
+        return e,-1
 
     ret = 0
     fav = 0
