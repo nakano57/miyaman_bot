@@ -61,11 +61,12 @@ init_json = {"ids": dic, "followings": dic,
 # post_channel_config = ['考察1st', 'bot用','｢reaper｣-｢unknown｣-｢i｣監視']
 post_channel_config = ['twitter監視ch']
 
-pattern = '(ロボット|ろぼっと)(くん|君|クン)(タスケテ|たすけて|助けて|救けて).*'
+pat_robo = '(ロボ|ろぼ)(ット|っと)?(くん|君|クン)'
+pattern = pat_robo+'(タスケテ|たすけて|助けて|救けて).*'
 repatter = re.compile(pattern)
-nnkw = '(ロボット|ろぼっと)(くん|君|クン).*ななかわ.*'
+nnkw = pat_robo+'.*ななかわ.*'
 nkpatter = re.compile(nnkw)
-ryry = '(ロボット|ろぼっと)(くん|君|クン).*りやりや.*'
+ryry = pat_robo+'.*りやりや.*'
 rypatter = re.compile(ryry)
 
 force_dic_write = False
