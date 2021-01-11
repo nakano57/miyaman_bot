@@ -51,7 +51,7 @@
         "14": 2301
     },
     "flags": {
-        "update_count": 1,
+        "update_count": 0,
         "iine_count": 0,
         "iine_list": "",
         "follow_count": 0,
@@ -92,6 +92,23 @@
         "11": "https://pbs.twimg.com/profile_images/1339475135896510464/xzAb676k.jpg",
         "12": "https://pbs.twimg.com/profile_images/1339474108027834368/pGbgzOtl.jpg",
         "13": "https://pbs.twimg.com/profile_images/1340505027723448323/_zFi27-I.jpg",
+        "14": ""
+    },
+    "profile_banner_url": {
+        "0": "",
+        "1": "https://pbs.twimg.com/profile_banners/1322830589846695936/1605426345",
+        "2": "https://pbs.twimg.com/profile_banners/1322829754265858048/1605426752",
+        "3": "https://pbs.twimg.com/profile_banners/1322829005863579649/1605425741",
+        "4": "https://pbs.twimg.com/profile_banners/1322826495182561281/1605425937",
+        "5": "https://pbs.twimg.com/profile_banners/1322824582525460480/1604827100",
+        "6": "https://pbs.twimg.com/profile_banners/1322823657589153793/1604812219",
+        "7": "https://pbs.twimg.com/profile_banners/1320678051919769600/1605757969",
+        "8": "",
+        "9": "",
+        "10": "https://pbs.twimg.com/profile_banners/1322831778877374464/1607682056",
+        "11": "https://pbs.twimg.com/profile_banners/1322825344852717568/1608192776",
+        "12": "https://pbs.twimg.com/profile_banners/1322827467384528898/1608190572",
+        "13": "https://pbs.twimg.com/profile_banners/1321730780654051328/1608435028",
         "14": ""
     }
 }

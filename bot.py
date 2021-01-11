@@ -64,7 +64,8 @@ ex_follow = []
 ex_rt = []
 
 init_json = {"ids": dic, "followings": dic,
-             "favorites": dic, "statuses_count": dic, "profile_image_url": dic}
+             "favorites": dic, "statuses_count": dic,
+             "profile_image_url": dic, "profile_banner_url": dic}
 
 
 # post_channel_config = ['考察1st', 'bot用','｢reaper｣-｢unknown｣-｢i｣監視']
@@ -153,6 +154,7 @@ def get_latest_tweets(screen_name, idx, count):
     message = []
     id = 0
     profimg = ''
+    bannerimg = ''
     provisional_str = PROV_STR if idx >= provisional_line and my_model_no == 2 else ''
 
     # 死神だけは何も返ってこない
@@ -167,15 +169,19 @@ def get_latest_tweets(screen_name, idx, count):
             n = statuses_count - latest_dic["statuses_count"][str(idx)]
             latest_dic["statuses_count"][str(idx)] = statuses_count
             if n > 1:
-                message, id, profimg = get_latest_tweets(screen_name, idx, n)
+                message, id, profimg, bannerimg = get_latest_tweets(screen_name, idx, n)
                 message.reverse()
                 return message, id
 
         for line in timelines:  # タイムラインリストをループ処理
 
             if not line['retweeted']:
-                img = line['user']['profile_image_url_https']
-                profimg = img.replace('_normal.', '.')
+                if 'profile_image_url_https' in line['user']:
+                    img = line['user']['profile_image_url_https']
+                    profimg = img.replace('_normal.', '.')
+
+                if 'profile_banner_url' in line['user']:
+                    bannerimg = line['user']['profile_banner_url']
 
             message.append('{2}https://twitter.com/{0}/status/{1}'.format(
                 screen_name, line['id_str'], provisional_str))
@@ -187,7 +193,7 @@ def get_latest_tweets(screen_name, idx, count):
         message = "Failed: %d" % res.status_code
         id = -1
 
-    return message, id, profimg
+    return message, id, profimg, bannerimg
 
 
 def get_limit():
@@ -274,7 +280,7 @@ class MiyaClient(discord.Client):
     def tweet_report(self):
 
         for k, v in dic.items():
-            urls, id, profimg = get_latest_tweets(v, k, 1)
+            urls, id, profimg, bannerimg = get_latest_tweets(v, k, 1)
             following, name, fav = get_followings(v)
 
             if id < 0 or following < 0:
@@ -297,14 +303,23 @@ class MiyaClient(discord.Client):
 
                     latest_dic["ids"][str(k)] = id
 
-                if MODEL_NO_2_ENABLE and profimg != latest_dic["profile_image_url"][str(k)]:
+                if profimg != latest_dic["profile_image_url"][str(k)]:
                     latest_dic["flags"]["update_count"] += 1
 
                     ss = '{0} のプロフィール画像が変更されました\n{1}'.format(v, profimg)
-                    self.q.put(ss)
                     print(ss)
+                    self.q.put(ss)
 
                     latest_dic["profile_image_url"][str(k)] = profimg
+
+                if bannerimg != latest_dic["profile_banner_url"][str(k)]:
+                    latest_dic["flags"]["update_count"] += 1
+
+                    ss = '{0} のヘッダー画像が変更されました\n{1}'.format(v, bannerimg)
+                    print(ss)
+                    self.q.put(ss)
+
+                    latest_dic["profile_banner_url"][str(k)] = bannerimg
 
                 if following != latest_dic["followings"][str(k)]:
                     latest_dic["flags"]["update_count"] += 1
