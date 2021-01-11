@@ -11,6 +11,7 @@ import time
 import queue
 import re
 import os
+import random
 
 # config.pyを用意
 import config
@@ -53,6 +54,9 @@ dic = {0: "binarycity_i",
        13: "castleseven_aya"
        }
 
+provisional_line = 14  # dic内のこの番号以降、2号くんが暫定措置として代わりに発言する
+PROV_STR = '[PROV] '
+
 #ex_iine = ["aoshima_rokusen", "actress_nanano"]
 ex_iine = []
 #ex_follow = ["actress_nanano"]
@@ -66,14 +70,43 @@ init_json = {"ids": dic, "followings": dic,
 # post_channel_config = ['考察1st', 'bot用','｢reaper｣-｢unknown｣-｢i｣監視']
 post_channel_config = ['twitter監視ch']
 
-pat_robo = '(ロボ|ろぼ)(ット|っと)?(くん|君|クン)'
-pattern = pat_robo+'(タスケテ|たすけて|助けて|救けて).*'
-repatter = re.compile(pattern)
-nnkw = pat_robo+'.*ななかわ.*'
-nkpatter = re.compile(nnkw)
-ryry = pat_robo+'.*りやりや.*'
-rypatter = re.compile(ryry)
+repatter1 = []
+pattern_base1 = '(ロボ|ろぼ)(ット|っと)?(くん|君|クン)'
+pattern_list1 = [
+    ['ななかわ', 'ナナカワ！'],
+    ['りやりや', 'リヤリヤ！'],
+    ['(タスケテ|たすけて|助けて|救けて)', ':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ'],
+    ['(参加).*(数|何人|何名|おしえて|教えて)', '[NO2_COUNT]'],
+    # ['(ずがずが|ズガズガ)', '[NO2_MSG]ズガズガ？'],
+    ['(とらとら|トラトラ)', '[NO2_MSG]トラトラ！'],
+    ['(いちなな|イチナナ|なないち|ナナイチ)',
+     '[NO2_MSG]<:m_2_nanano:791168443851604008> :heart: <:m_1_ichigo:791168439301439519>'],
+    ['(りやしず|リヤシズ|しずりや|シズリヤ)',
+     '[NO2_MSG]<:m_3_riya:791168443910848542> :heart: <:m_5_sizu:791168444418359317>'],
+    ['(ひかれい|ヒカレイ|ヒカ玲|レイヒカ|玲ヒカ)',
+     '[NO2_MSG]<:m_4_reiko:791168442966343680> :heart: <:m_6_hikari:791168442748764180>'],
+    ['(どーなつ|ドーナツ|どーなっつ|ドーナッツ)', '[NO2_DOUGHNUT]'],
+    ['(こんにちは|こんにちわ|コンニチハ|コンニチワ)', '[NO2_MSG]こんにちは'],
+    ['(こんばんは|こんばんわ|今晩は|コンバンワ|コンバンハ)', '[NO2_MSG]こんばんは'],
+    ['(癒して|癒やして|いやして)', '[NO2_MSG]すみません。現在未実装です'],
+    ['(ココイチ)', '[NO2_MSG]:curry:'],
+    ['(みやまん|MYMN|mymn|ＭＹＭＮ|ｍｙｍｎ|都まんじゅう|みやこまんじゅう)', '[NO2_MYMN]'],
+    ['(ごはん|ご飯|御飯|ゴハン)', '[NO2_FOOD]'],
+    ['(おやつ|オヤツ)', '[NO2_SWEETS]'],
+    ['(スロット)', '[NO2_SLOT]'],
+    ['(リーパー|Reaper|reaper|Ｒｅａｐｅｒ|ｒｅａｐｅｒ)', '[NO2_MSG]おやすみなさい！'],
 
+]
+
+# <:m_1_ichigo:791168439301439519>
+# <:m_2_nanano:791168443851604008>
+# <:m_3_riya:791168443910848542>
+# <:m_4_reiko:791168442966343680>
+# <:m_5_sizu:791168444418359317>
+# <:m_6_hikari:791168442748764180>
+
+for i in pattern_list1:
+    repatter1.append([re.compile(pattern_base1+'.*'+i[0]+'.*'), i[1]])
 
 # 監視chのみで使えるコマンド
 repatter_sys = []
@@ -88,7 +121,7 @@ pattern_list_sys = [
     [pattern_base_sys2 + '.*(おきて|起きて).*', '[SLEEP]', 2, 0],
     [pattern_base_sys2 + '.*(働いて|仕事して).*', '[WAKE2]', 0, 0],
     [pattern_base_sys2 + '.*(おつかれ|お疲れ|休憩して|休んで).*', '[REST2]', 0, 0],
-                 ]
+]
 
 sleep_msg = [['オハヨウ！', 'おはようございます'], ['オヤスミ！', 'おやすみなさい']]
 
@@ -121,6 +154,7 @@ def get_latest_tweets(screen_name, idx, count):
 
     message = []
     id = 0
+    provisional_str = PROV_STR if idx >= provisional_line and my_model_no == 2 else ''
 
     # 死神だけは何も返ってこない
     if res.text == '':
@@ -140,8 +174,8 @@ def get_latest_tweets(screen_name, idx, count):
 
         for line in timelines:  # タイムラインリストをループ処理
 
-            message.append('https://twitter.com/{0}/status/{1}'.format(
-                screen_name, line['id_str']))
+            message.append('{2}https://twitter.com/{0}/status/{1}'.format(
+                screen_name, line['id_str'], provisional_str))
             if id == 0:
                 id = line['id']
 
@@ -228,6 +262,7 @@ class MiyaClient(discord.Client):
     fefteen_flag = False
     post_once = False
     q = queue.Queue()
+    q2 = queue.Queue()
 
     # 2号くん用
     no2_msg = []
@@ -252,7 +287,10 @@ class MiyaClient(discord.Client):
                     latest_dic["flags"]["update_count"] += 1
 
                     for i in urls:
-                        self.q.put(i)
+                        if PROV_STR in i:
+                            self.q2.put(i)
+                        else:
+                            self.q.put(i)
 
                     latest_dic["ids"][str(k)] = id
 
@@ -366,6 +404,10 @@ class MiyaClient(discord.Client):
             print("json updated")
             self.update_json()
 
+        # self.update_json()  # 強制更新したい場合用
+        print('現在のサーバー参加者総数：{0}名\n'.format(guild.member_count))
+        # await self.message_statistics(guild, 48)
+
         while True:
 
             start = time.time()
@@ -391,8 +433,9 @@ class MiyaClient(discord.Client):
                                     await i.send('あ、{0}が戻りましたね。休憩します'.format(no1_name))
                     else:
                         offline_cnt = offline_cnt + 1
-                        if offline_cnt > 1:
-                            self.no2_wake('あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
+                        if offline_cnt > 2:
+                            self.no2_wake(
+                                'あ、{0}が落ちましたね。引き継ぎます'.format(no1_name))
                 else:
                     self.no2_wake()
 
@@ -431,6 +474,16 @@ class MiyaClient(discord.Client):
                         else:
                             await i.send(msg)
                 await asyncio.sleep(0.5)
+            # 暫定発言措置
+            if MODEL_NO_2_ENABLE:
+                while not self.q2.empty():
+                    for i in post_channels:
+                        msg = self.q2.get()
+                        msg = msg[len(PROV_STR):]
+                        print('[Provisional] '+msg)
+                        await i.send(msg)
+                        force_dic_write = True
+                await asyncio.sleep(0.5)
 
             diff = time.time()-start
             if diff < len(dic):
@@ -451,17 +504,17 @@ class MiyaClient(discord.Client):
         if message.author == client.user:
             return
 
-        # 1号くん用
-        if MODEL_NO_2_ENABLE == False:
-            result = repatter.match(message.content)
+        # if ':m_6_hikari:' in message.content or ':m_4_reiko:' in message.content:
+        #    print(message.content)
+
+        # 参加者からのメッセージ対応
+        for r in repatter1:
+            result = r[0].match(message.content)
             if result:
-                await message.channel.send(':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ')
-            result = nkpatter.match(message.content)
-            if result:
-                await message.channel.send('ナナカワ！')
-            result = rypatter.match(message.content)
-            if result:
-                await message.channel.send('リヤリヤ！')
+                if my_model_no == 1:
+                    await self.no1_message(message, r[1])
+                elif my_model_no == 2:
+                    await self.no2_message(message, r[1])
 
         # ここから監視ch用
         if not str(message.channel) in post_channel_config:
@@ -477,8 +530,8 @@ class MiyaClient(discord.Client):
         if my_model_no == 2 and client.user.id == MODEL_NO_1_ID:  # 1号くんの発言があった
             await self.check_partner_message(message)
 
-
     # 相棒からのメッセージを調べる
+
     async def check_partner_message(self, message):
         global latest_dic, force_dic_write
         if message.content == sleep_msg[0][partner_model_no-1]:  # おはよう
@@ -505,8 +558,8 @@ class MiyaClient(discord.Client):
                         no1_name = '1号'  # message.author.name
                         await message.channel.send('{0}が戻ってきたので休憩します'.format(no1_name))
 
-
     # 監視chのコマンドを実行
+
     async def exec_sys_command(self, message, cmd, arg1, arg2):
         print(cmd, arg1, arg2)
         if cmd == '[SLEEP]':
@@ -519,8 +572,72 @@ class MiyaClient(discord.Client):
         elif cmd == '[WAKE2]':
             self.no2_wake('戻りました')
 
+    # 参加者からのメッセージ対応（1号くん）
+
+    async def no1_message(self, message, cmd):
+        if '[NO2' in cmd:  # 2号くん用なので無視
+            return
+        elif '[NO1' in cmd:  # コマンド
+            print('未実装')
+        else:  # そのまま発言する
+            await message.channel.send(cmd)
+
+    # 参加者からのメッセージ対応（2号くん）
+
+    async def no2_message(self, message, cmd):
+        # print(cmd)
+        # 基本的には1号くん優先なので大体は無視
+        if cmd == '[NO2_COUNT]':
+            await message.channel.send('現在のサーバー参加者総数は{0}名です'.format(message.guild.member_count))
+
+        elif '[NO2_MSG]' in cmd:
+            msg = cmd[len('[NO2_MSG]'):]
+            await message.channel.send(msg)
+
+        elif '[NO2_DOUGHNUT]' in cmd:
+            ds = [':doughnut:', ':bagel:', ':cd:']
+            di = [0, 0, 0]
+            for j in range(3):
+                r = random.randint(1, 100)
+                di[j] = 1 if r >= 90 else 0
+                di[j] = 2 if r == 55 else di[j]
+            await message.channel.send('{0} {1} {2}'.format(ds[di[0]], ds[di[1]], ds[di[2]]))
+
+        elif '[NO2_MYMN]' in cmd:
+            ds = [
+                '<:m_1_ichigo:791168439301439519>', '<:m_2_nanano:791168443851604008>',
+                '<:m_3_riya:791168443910848542>', '<:m_4_reiko:791168442966343680>',
+                '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>']
+            random.shuffle(ds)
+            await message.channel.send(ds[0] + ' ' + ds[1] + ' ' + ds[2] + ' ' + ds[3] + ' ' + ds[4] + ' ' + ds[5])
+
+        elif '[NO2_FOOD]' in cmd:
+            ds = [':apple:', ':bread:', ':rice:', ':pizza:', ':hamburger:', ':ramen:', ':sandwich:',
+                  ':spaghetti:', ':meat_on_bone:', ':sushi:', ':hotdog:', ':curry:', ':rice_ball:']
+            random.shuffle(ds)
+            await message.channel.send('どうぞ')
+            await message.channel.send(ds[0])
+
+        elif '[NO2_SWEETS]' in cmd:
+            ds = [':strawberry:' ':cake:', ':doughnut:', ':pancakes:', ':waffle:', ':dango:',
+                  ':cookie:', ':custard:', ':icecream:', ':popcorn:', ':chocolate_bar:',
+                  ':lollipop:', ':rice_cracker:', ':ice_cream:']
+            random.shuffle(ds)
+            await message.channel.send('どうぞ')
+            await message.channel.send(ds[0])
+
+        elif '[NO2_SLOT]' in cmd and not 'フルスロットル' in message.content:
+            ds = [
+                '<:m_1_ichigo:791168439301439519>', '<:m_2_nanano:791168443851604008>',
+                '<:m_3_riya:791168443910848542>', '<:m_4_reiko:791168442966343680>',
+                '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>']
+            s1 = random.randint(0, 5)
+            s2 = random.randint(0, 5)
+            s3 = random.randint(0, 5)
+            await message.channel.send('{0} {1} {2}'.format(ds[s1], ds[s2], ds[s3]))
 
     # スリープモードの変更
+
     async def set_sleep_mode(self, message, model_no, onoff):
         global latest_dic, force_dic_write
         if my_model_no != model_no:
@@ -538,8 +655,8 @@ class MiyaClient(discord.Client):
         else:
             self.q.put(sleep_msg[onoff][model_no - 1])
 
-
     # 2号くんを休憩させる
+
     def no2_rest(self):
         global latest_dic, force_dic_write
         if latest_dic["flags"]["sleep_mode_partner"] != 0:
@@ -553,8 +670,8 @@ class MiyaClient(discord.Client):
             return True
         return False
 
-
     # 2号くんを休憩から戻す
+
     def no2_wake(self, comment=''):
         global latest_dic
         latest_dic["flags"]["sleep_mode"] = 0
@@ -568,6 +685,24 @@ class MiyaClient(discord.Client):
             return True
         return False
 
+    # メッセージ統計出力
+
+    async def message_statistics(self, guild, hours):
+        msg_cnt = {}
+        aftertime = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
+        for c in guild.text_channels:
+            # print('【{0}】 {1}'.format(c.name, c.id))
+            if c.id != 780767711545786388 and c.id != 783661317834670090:  # 参加  監視ch
+                messages = await c.history(limit=None, after=aftertime).flatten()
+                for h in messages:
+                    # print('{2}({3}): {0}:{1}'.format(h.content, h.created_at, h.author.name, h.author.id))
+                    msg_cnt.setdefault(str(h.author.id), 0)
+                    msg_cnt[str(h.author.id)] += 1
+        all_num = 0
+        for ii in msg_cnt.values():
+            all_num += ii
+        print('直近{0}時間で、発言者数は{1}名でした。総発言数は{2}です'.format(
+            hours, len(msg_cnt), all_num))
 
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
