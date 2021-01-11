@@ -152,11 +152,8 @@ def get_latest_tweets(screen_name, idx, count):
         'screen_name': screen_name,
         'exclude_replies': 'false'
     }
-    try:
-        res = twitter.get(url, params=params)
-    except Exception as e:
-        print(e)
-        return e, -1, None, None
+
+    res = twitter.get(url, params=params)
 
     message = []
     id = 0
@@ -205,11 +202,8 @@ def get_latest_tweets(screen_name, idx, count):
 
 
 def get_limit():
-    try:
-        res = twitter.get(limit)
-    except Exception as e:
-        print(e)
-        return -1
+    res = twitter.get(limit)
+
     ret = 0
 
     if res.status_code == 200:  # 正常通信出来た場合
@@ -226,11 +220,7 @@ def get_followings(screen_name):
     params = {
         'screen_name': screen_name,
     }
-    try:
-        res = twitter.get(show_user, params=params)
-    except Exception as e:
-        print(e)
-        return -1, None, None
+    res = twitter.get(show_user, params=params)
 
     ret = 0
     fav = 0
@@ -253,13 +243,7 @@ def get_fav_tweet(screen_name):
         'screen_name': screen_name,
         'count': 1
     }
-    
-    try:
-        res = twitter.get(fav_list, params=params)
-    except Exception as e:
-        print(e)
-        return None,-1
-
+    res = twitter.get(fav_list, params=params)
 
     message = ''
     id = 0
@@ -302,8 +286,12 @@ class MiyaClient(discord.Client):
     def tweet_report(self):
 
         for k, v in dic.items():
-            urls, id, profimg, bannerimg = get_latest_tweets(v, k, 1)
-            following, name, fav = get_followings(v)
+            try:
+                urls, id, profimg, bannerimg = get_latest_tweets(v, k, 1)
+                following, name, fav = get_followings(v)
+            except Exception as e:
+                print(e)
+                continue
 
             if id < 0 or following < 0:
                 reset = get_limit()
