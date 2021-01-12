@@ -29,3 +29,33 @@ class Miyajson():
                 self.latest_dic = json.load(f)
             except:
                 self.latest_dic = Miyajson.init_json
+
+    def get_id(self, k):
+        return self.latest_dic["ids"][str(k)]
+
+    def set_id(self, k, n):
+        self.latest_dic["ids"][str(k)] = n
+
+    def get_following(self, k, n):
+        pass
+
+    def set_following(self, k, n):
+        pass
+
+    def get_favorite(self, k, n):
+        pass
+
+    def set_favorite(self, k, n):
+        pass
+
+    def get_statuses_count(self, k, n):
+        pass
+
+    def set_statuses_count(self, k, n):
+        pass
+
+    def get_profile_image_url(self, k, n):
+        pass
+
+    def set_profile_banner_url(self, k, n):
+        pass
