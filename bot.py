@@ -445,6 +445,7 @@ class MiyaClient(discord.Client):
         print('現在のサーバー参加者総数：{0}名\n'.format(guild.member_count))
         # await self.message_statistics(guild, 48)
 
+        #メインループ
         while True:
 
             start = time.time()
