@@ -528,7 +528,7 @@ class MiyaClient(discord.Client):
                 await asyncio.sleep(0.5)
 
             diff = time.time()-start
-            if diff < len(dic):
+            if diff < len(dic) or wait != 0:
                 await asyncio.sleep(len(dic)-diff+0.5+wait)
 
     async def on_ready(self):
