@@ -142,7 +142,7 @@ class MiyaClient(discord.Client):
 
             else:
 
-                if id != self.mj.latest_dic["ids"][str(k)]:
+                if id != self.mj.get_id(k):
                     self.mj.latest_dic["flags"]["update_count"] += 1
 
                     for i in urls:
@@ -151,7 +151,7 @@ class MiyaClient(discord.Client):
                         else:
                             self.q.put(i)
 
-                    self.mj.latest_dic["ids"][str(k)] = id
+                    self.mj.set_id(k,id)
 
                 if profimg != '' and profimg != self.mj.latest_dic["profile_image_url"][str(k)]:
                     self.mj.latest_dic["flags"]["update_count"] += 1
