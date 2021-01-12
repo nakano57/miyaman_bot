@@ -30,6 +30,9 @@ class Miyajson():
             except:
                 self.latest_dic = Miyajson.init_json
 
+    def dump(self):
+        pass
+
     def get_id(self, k):
         return self.latest_dic["ids"][str(k)]
 
