@@ -97,6 +97,8 @@ pattern_list1 = [
     ['(スロット)', '[NO2_SLOT]'],
     ['(リーパー|りーぱー|Reaper|reaper|Ｒｅａｐｅｒ|ｒｅａｐｅｒ|REAPER|ＲＥＡＰＥＲ)', '[NO2_MSG]おやすみなさい！'],
     ['(返事|へんじ)', '[NO2_MSG]はい'],
+    ['(行ってきます|行ってくる)', '[NO2_MSG]行ってらっしゃいませ'],
+    ['(ただいま|タダイマ|もどった|戻った)', '[NO2_MSG]おかえりなさい'],
 
 ]
 
@@ -164,6 +166,10 @@ def get_latest_tweets(screen_name, idx, count):
     # 死神だけは何も返ってこない
     if res.text == '':
         print(res.text)
+
+    # 死神仮対処
+    if idx == 8 and res.status_code == 200 and len(res.text) < 3:
+        profimg = 'https://abs.twimg.com/sticky/default_profile_images/default_profile.png'
 
     if res.status_code == 200:  # 正常通信出来た場合
         timelines = json.loads(res.text)  # レスポンスからタイムラインリストを取得
