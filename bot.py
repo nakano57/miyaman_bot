@@ -186,13 +186,12 @@ def get_latest_tweets(screen_name, idx, count):
 
         for line in timelines:  # タイムラインリストをループ処理
 
-            if not line['retweeted']:
-                if 'profile_image_url_https' in line['user']:
-                    img = line['user']['profile_image_url_https']
-                    profimg = img.replace('_normal.', '.')
+            if 'profile_image_url_https' in line['user']:
+                img = line['user']['profile_image_url_https']
+                profimg = img.replace('_normal.', '.')
 
-                if 'profile_banner_url' in line['user']:
-                    bannerimg = line['user']['profile_banner_url']
+            if 'profile_banner_url' in line['user']:
+                bannerimg = line['user']['profile_banner_url']
 
             message.append('{2}https://twitter.com/{0}/status/{1}'.format(
                 screen_name, line['id_str'], provisional_str))
@@ -319,20 +318,20 @@ class MiyaClient(discord.Client):
 
                     latest_dic["ids"][str(k)] = id
 
-                if profimg != latest_dic["profile_image_url"][str(k)]:
+                if profimg != '' and profimg != latest_dic["profile_image_url"][str(k)]:
                     latest_dic["flags"]["update_count"] += 1
 
                     ss = '{0} のプロフィール画像が変更されました\n{1}'.format(v, profimg)
-                    print(ss)
+                    # print(ss)
                     self.q.put(ss)
 
                     latest_dic["profile_image_url"][str(k)] = profimg
 
-                if bannerimg != latest_dic["profile_banner_url"][str(k)]:
+                if bannerimg != '' and bannerimg != latest_dic["profile_banner_url"][str(k)]:
                     latest_dic["flags"]["update_count"] += 1
 
                     ss = '{0} のヘッダー画像が変更されました\n{1}'.format(v, bannerimg)
-                    print(ss)
+                    # print(ss)
                     self.q.put(ss)
 
                     latest_dic["profile_banner_url"][str(k)] = bannerimg
