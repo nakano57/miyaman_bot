@@ -2,7 +2,6 @@
 # nohup /home/pi/ProjectColdBot/bot.py /home/pi/ProjectColdBot/dump.json >/dev/null &
 
 import json
-from requests_oauthlib import OAuth1Session
 import discord
 import datetime
 import sys
@@ -15,6 +14,8 @@ import random
 
 # config.pyを用意
 import config
+from miyajson import Miyajson
+import miyatwi
 
 MODEL_NO_2_ENABLE = config.MODEL_NO_2_ENABLE  # 2号くんモードにする場合は True
 # 1号くん判別用 783629981548412948   [B]:756287897719668776　2号くん:791528352342212688
@@ -25,37 +26,6 @@ MODEL_NO_1_ENABLE = False if MODEL_NO_2_ENABLE else True
 my_model_no = 1 if MODEL_NO_1_ENABLE else 2
 partner_model_no = 3 - my_model_no
 
-CK = config.CONSUMER_KEY
-CS = config.CONSUMER_SECRET
-AT = config.ACCESS_TOKEN
-ATS = config.ACCESS_TOKEN_SECRET
-twitter = OAuth1Session(CK, CS, AT, ATS)  # 認証処理
-
-# 死神がいっこもツイートしていないせいでこれだとフォロワーを取得できない
-url = "https://api.twitter.com/1.1/statuses/user_timeline.json"  # タイムライン取得エンドポイント
-limit = "https://api.twitter.com/1.1/application/rate_limit_status.json"
-show_user = "https://api.twitter.com/1.1/users/show.json"
-fav_list = "https://api.twitter.com/1.1/favorites/list.json"
-
-
-dic = {0: "binarycity_i",
-       1: "strawberry_fore",
-       2: "actress_nanano",
-       3: "kirakira_nanano",
-       4: "riya_hoshino",
-       5: "aoshima_rokusen",
-       6: "iwanaga_sizu",
-       7: "hikari_miyaman",
-       8: "reaper_surveill",
-       9: "Ft3oh35Hy51d",
-       10: "waruichigo",
-       11: "reiko_blueislan",
-       12: "retanihoshino",
-       13: "castleseven_aya"
-       }
-
-provisional_line = 14  # dic内のこの番号以降、2号くんが暫定措置として代わりに発言する
-PROV_STR = '[PROV] '
 
 #ex_iine = ["aoshima_rokusen", "actress_nanano"]
 ex_iine = []
@@ -63,13 +33,7 @@ ex_iine = []
 ex_follow = []
 ex_rt = []
 
-init_json = {"ids": dic, "followings": dic,
-             "favorites": dic, "statuses_count": dic,
-             "profile_image_url": dic, "profile_banner_url": dic}
-
-
-# post_channel_config = ['考察1st', 'bot用','｢reaper｣-｢unknown｣-｢i｣監視']
-post_channel_config = ['twitter監視ch']
+# config.POST_CHANNEL_CONFIG = ['考察1st', 'bot用','｢reaper｣-｢unknown｣-｢i｣監視']
 
 repatter1 = []
 pattern_base1 = '(ロボ|ろぼ)(ット|っと)?(くん|君|クン)'
@@ -135,149 +99,13 @@ for i in pattern_list_sys:
 
 force_dic_write = False
 
-with open(sys.argv[1]) as f:
-    try:
-        latest_dic = json.load(f)
-    except:
-        latest_dic = init_json
-
-    print(latest_dic)
-
-    if MODEL_NO_2_ENABLE:
-        print('\n！！！！　2号くんモードです　！！！！\n')
-
-
-def get_latest_tweets(screen_name, idx, count):
-
-    params = {
-        'count': count,
-        'screen_name': screen_name,
-        'exclude_replies': 'false'
-    }
-
-    res = twitter.get(url, params=params)
-
-    message = []
-    id = 0
-    profimg = ''
-    bannerimg = ''
-    provisional_str = PROV_STR if idx >= provisional_line and my_model_no == 2 else ''
-
-    # 死神だけは何も返ってこない
-    if res.text == '':
-        print(res.text)
-
-    # 死神仮対処
-    if idx == 8 and res.status_code == 200 and len(res.text) < 3:
-        profimg = 'https://abs.twimg.com/sticky/default_profile_images/default_profile.png'
-
-    if res.status_code == 200:  # 正常通信出来た場合
-        timelines = json.loads(res.text)  # レスポンスからタイムラインリストを取得
-
-        if count == 1 and timelines:  # 初回かつ死神以外
-            statuses_count = timelines[0]['user']['statuses_count']
-            n = statuses_count - latest_dic["statuses_count"][str(idx)]
-            latest_dic["statuses_count"][str(idx)] = statuses_count
-            if n > 1:
-                message, id, profimg, bannerimg = get_latest_tweets(
-                    screen_name, idx, n)
-                message.reverse()
-                return message, id
-
-        for line in timelines:  # タイムラインリストをループ処理
-
-            if 'profile_image_url_https' in line['user']:
-                img = line['user']['profile_image_url_https']
-                profimg = img.replace('_normal.', '.')
-
-            if 'profile_banner_url' in line['user']:
-                bannerimg = line['user']['profile_banner_url']
-
-            message.append('{2}https://twitter.com/{0}/status/{1}'.format(
-                screen_name, line['id_str'], provisional_str))
-            if id == 0:
-                id = line['id']
-
-    else:  # 正常通信出来なかった場合
-        print('正常通信出来なかった場合: get_latest_tweets')
-        message = "Failed: %d" % res.status_code
-        id = -1
-
-    return message, id, profimg, bannerimg
-
-
-def get_limit():
-    res = twitter.get(limit)
-
-    ret = 0
-
-    if res.status_code == 200:  # 正常通信出来た場合
-        limits = json.loads(res.text)  # レスポンスからタイムラインリストを取得
-        ret = limits["resources"]["statuses"]["/statuses/user_timeline"]["reset"]
-        print(time.time()-ret)
-    else:  # 正常通信出来なかった場合
-        message = "Failed: %d" % res.status_code
-
-    return ret
-
-
-def get_followings(screen_name):
-    params = {
-        'screen_name': screen_name,
-    }
-    res = twitter.get(show_user, params=params)
-
-    ret = 0
-    fav = 0
-    name = ''
-
-    if res.status_code == 200:  # 正常通信出来た場合
-        following = json.loads(res.text)  # レスポンスからタイムラインリストを取得
-        ret = following["friends_count"]
-        name = following["name"]
-        fav = following["favourites_count"]
-    else:  # 正常通信出来なかった場合
-        print('正常通信出来なかった場合: get_followings')
-        ret = -1
-
-    return ret, name, fav
-
-
-def get_fav_tweet(screen_name):
-    params = {
-        'screen_name': screen_name,
-        'count': 1
-    }
-    res = twitter.get(fav_list, params=params)
-
-    message = ''
-    id = 0
-
-    if res.status_code == 200:  # 正常通信出来た場合
-        timelines = json.loads(res.text)  # レスポンスからタイムラインリストを取得
-        for line in timelines:  # タイムラインリストをループ処理
-            message += 'https://twitter.com/{0}/status/{1}'.format(
-                screen_name, line['id_str'])
-            id = line['id']
-
-    else:  # 正常通信出来なかった場合
-        message = "Failed: %d" % res.status_code
-        id = -1
-
-    return message, id
-
-
-def my_round(val, digit=0):
-    p = 10 ** digit
-    return (val * p * 2 + 1) // 2 / p
+if MODEL_NO_2_ENABLE:
+    print('\n！！！！　2号くんモードです　！！！！\n')
 
 
 class MiyaClient(discord.Client):
 
-    # update_count = 0
-    # iine_count = 0
     iine_list = set()
-    # follow_count = 0
     follow_list = set()
     fefteen_flag = False
     post_once = False
@@ -288,97 +116,107 @@ class MiyaClient(discord.Client):
     no2_msg = []
     last_send_time = time.time()
 
-    def tweet_report(self):
-
-        for k, v in dic.items():
+    def __init__(self):
+        super().__init__()
+        with open(sys.argv[1]) as f:
             try:
-                urls, id, profimg, bannerimg = get_latest_tweets(v, k, 1)
-                following, name, fav = get_followings(v)
+                self.latest_dic = json.load(f)
+            except:
+                self.latest_dic = Miyajson.init_json
+
+        self.mt = miyatwi.MiyaTwi(my_model_no)
+
+    def tweet_report(self):
+        for k, v in Miyajson.dic.items():
+            try:
+                urls, id, profimg, bannerimg = self.mt.get_latest_tweets(
+                    self.latest_dic, v, k, 1)
+                following, name, fav = self.mt.get_followings(v)
             except Exception as e:
                 print(e)
                 continue
 
             if id < 0 or following < 0:
-                reset = get_limit()
-                dt = datetime.datetime.fromtimestamp(reset)
+                reset = self.mt.get_limit()
+                dt = datetime.datetime.froself.mtimestamp(reset)
 
                 self.q.put("[BOT] Twitterのリミット制限。一旦休憩します。（再開:{}）".format(dt))
                 return abs(int(reset)-int(time.time()))
 
             else:
 
-                if id != latest_dic["ids"][str(k)]:
-                    latest_dic["flags"]["update_count"] += 1
+                if id != self.latest_dic["ids"][str(k)]:
+                    self.latest_dic["flags"]["update_count"] += 1
 
                     for i in urls:
-                        if PROV_STR in i:
+                        if config.PROV_STR in i:
                             self.q2.put(i)
                         else:
                             self.q.put(i)
 
-                    latest_dic["ids"][str(k)] = id
+                    self.latest_dic["ids"][str(k)] = id
 
-                if profimg != '' and profimg != latest_dic["profile_image_url"][str(k)]:
-                    latest_dic["flags"]["update_count"] += 1
+                if profimg != '' and profimg != self.latest_dic["profile_image_url"][str(k)]:
+                    self.latest_dic["flags"]["update_count"] += 1
 
                     ss = '{0} のプロフィール画像が変更されました\n{1}'.format(v, profimg)
                     # print(ss)
                     self.q.put(ss)
 
-                    latest_dic["profile_image_url"][str(k)] = profimg
+                    self.latest_dic["profile_image_url"][str(k)] = profimg
 
-                if bannerimg != '' and bannerimg != latest_dic["profile_banner_url"][str(k)]:
-                    latest_dic["flags"]["update_count"] += 1
+                if bannerimg != '' and bannerimg != self.latest_dic["profile_banner_url"][str(k)]:
+                    self.latest_dic["flags"]["update_count"] += 1
 
                     ss = '{0} のヘッダー画像が変更されました\n{1}'.format(v, bannerimg)
                     # print(ss)
                     self.q.put(ss)
 
-                    latest_dic["profile_banner_url"][str(k)] = bannerimg
+                    self.latest_dic["profile_banner_url"][str(k)] = bannerimg
 
-                if following != latest_dic["followings"][str(k)]:
-                    latest_dic["flags"]["update_count"] += 1
-                    latest_dic["flags"]["follow_count"] += 1
+                if following != self.latest_dic["followings"][str(k)]:
+                    self.latest_dic["flags"]["update_count"] += 1
+                    self.latest_dic["flags"]["follow_count"] += 1
 
                     self.follow_list.add(name)
 
-                    bef = latest_dic["followings"][str(k)]
+                    bef = self.latest_dic["followings"][str(k)]
 
                     if not(v in ex_follow):
                         self.q.put(name+"のフォロー数が"+str(bef) +
                                    "から"+str(following)+"になりました")
 
-                    latest_dic["followings"][str(k)] = following
+                    self.latest_dic["followings"][str(k)] = following
 
                 sec = datetime.datetime.now().second
-                if int(my_round(sec, -1)/10) % 3 == 0:
-                    if fav != latest_dic["favorites"][str(k)]:
-                        latest_dic["flags"]["update_count"] += 1
-                        latest_dic["flags"]["iine_count"] += 1
+                if int(self.mt.my_round(sec, -1)/10) % 3 == 0:
+                    if fav != self.latest_dic["favorites"][str(k)]:
+                        self.latest_dic["flags"]["update_count"] += 1
+                        self.latest_dic["flags"]["iine_count"] += 1
 
                         self.iine_list.add(name)
 
                         if fav > 0:
-                            _, id = get_fav_tweet(v)
+                            _, id = self.mt.get_fav_tweet(v)
 
-                        bef = latest_dic["favorites"][str(k)]
+                        bef = self.latest_dic["favorites"][str(k)]
 
                         if not (v in ex_iine):
                             self.q.put(name+"のいいね数が"+str(bef) +
                                        "から"+str(fav)+"になりました")
 
-                        latest_dic["favorites"][str(k)] = fav
+                        self.latest_dic["favorites"][str(k)] = fav
         return 0
 
     def regular_report(self):
-        if latest_dic["flags"]["update_count"] == 0:
+        if self.latest_dic["flags"]["update_count"] == 0:
             self.q.put('[BOT]この15分間で各Twitterアカウントに変化はありませんでした')
         else:
-            self.q.put('[BOT]この15分間で各Twitterアカウントに更新が'+str(latest_dic["flags"]["update_count"])+'件ありました（内いいね' +
-                       str(latest_dic["flags"]["iine_count"])+'件、フォロー'+str(latest_dic["flags"]["follow_count"])+'件）')
-        latest_dic["flags"]["update_count"] = 0
-        latest_dic["flags"]["iine_count"] = 0
-        latest_dic["flags"]["follow_count"] = 0
+            self.q.put('[BOT]この15分間で各Twitterアカウントに更新が'+str(self.latest_dic["flags"]["update_count"])+'件ありました（内いいね' +
+                       str(self.latest_dic["flags"]["iine_count"])+'件、フォロー'+str(self.latest_dic["flags"]["follow_count"])+'件）')
+        self.latest_dic["flags"]["update_count"] = 0
+        self.latest_dic["flags"]["iine_count"] = 0
+        self.latest_dic["flags"]["follow_count"] = 0
 
     def life_report(self):
         dt = datetime.datetime.now()
@@ -433,7 +271,7 @@ class MiyaClient(discord.Client):
         f = False
         # print(guild.text_channels)
         for i in guild.text_channels:
-            if i.name in post_channel_config:
+            if i.name in config.POST_CHANNEL_CONFIG:
                 post_channels.append(i)
 
         # self.q.put('[BOT]RESTART')
@@ -455,7 +293,7 @@ class MiyaClient(discord.Client):
 
             start = time.time()
             print("update: " + datetime.datetime.now().isoformat() +
-                  " count = "+str(latest_dic["flags"]["update_count"]))
+                  " count = "+str(self.latest_dic["flags"]["update_count"]))
 
             wait = self.tweet_report()
 
@@ -463,13 +301,13 @@ class MiyaClient(discord.Client):
                 if (start - self.last_send_time) > 16.5 * 60:
                     self.no2_wake('ガガガ')
 
-                gmem = guild.get_member(MODEL_NO_1_ID)
+                gmem = guild.self.mt.get_member(MODEL_NO_1_ID)
                 if gmem:
                     # print(gmem.raw_status)
                     no1_name = '1号'  # gmem.name
                     if gmem.raw_status == 'online':
                         offline_cnt = 0
-                        if latest_dic["flags"]["sleep_mode_partner"] == 0:
+                        if self.latest_dic["flags"]["sleep_mode_partner"] == 0:
                             if self.no2_rest():
                                 # すでに休憩モードに入っているのでqueueに入れてもダメなのでsend
                                 for i in post_channels:
@@ -499,7 +337,7 @@ class MiyaClient(discord.Client):
                 force_dic_write = False
                 with open(sys.argv[1], "w") as f:
                     try:
-                        json.dump(latest_dic, f, indent=4)
+                        json.dump(self.latest_dic, f, indent=4)
                         print("dumped")
                     except Exception as e:
                         print(e)
@@ -508,9 +346,9 @@ class MiyaClient(discord.Client):
                 for i in post_channels:
                     msg = self.q.get()
                     print(msg)
-                    if latest_dic["flags"]["sleep_mode"] == 0:
+                    if self.latest_dic["flags"]["sleep_mode"] == 0:
                         if MODEL_NO_2_ENABLE:
-                            if latest_dic["flags"]["send_enable"] == 1:
+                            if self.latest_dic["flags"]["send_enable"] == 1:
                                 await i.send(msg)
                             else:
                                 self.no2_msg.append(msg)
@@ -522,15 +360,15 @@ class MiyaClient(discord.Client):
                 while not self.q2.empty():
                     for i in post_channels:
                         msg = self.q2.get()
-                        msg = msg[len(PROV_STR):]
+                        msg = msg[len(config.PROV_STR):]
                         print('[Provisional] '+msg)
                         await i.send(msg)
                         force_dic_write = True
                 await asyncio.sleep(0.5)
 
             diff = time.time()-start
-            if diff < len(dic):
-                await asyncio.sleep(len(dic)-diff+0.5+wait)
+            if diff < len(Miyajson.dic) or wait != 0:
+                await asyncio.sleep(len(Miyajson.dic)-diff+0.5+wait)
 
     async def on_ready(self):
         print('We have logged in as {0.user}'.format(client))
@@ -560,7 +398,7 @@ class MiyaClient(discord.Client):
                     await self.no2_message(message, r[1])
 
         # ここから監視ch用
-        if not str(message.channel) in post_channel_config:
+        if not str(message.channel) in config.POST_CHANNEL_CONFIG:
             return
 
         for r in repatter_sys:
@@ -576,11 +414,11 @@ class MiyaClient(discord.Client):
     # 相棒からのメッセージを調べる
 
     async def check_partner_message(self, message):
-        global latest_dic, force_dic_write
+        global force_dic_write
         if message.content == sleep_msg[0][partner_model_no-1]:  # おはよう
             print('partner_sleep=0')
-            if latest_dic["flags"]["sleep_mode_partner"] != 0:
-                latest_dic["flags"]["sleep_mode_partner"] = 0
+            if self.latest_dic["flags"]["sleep_mode_partner"] != 0:
+                self.latest_dic["flags"]["sleep_mode_partner"] = 0
                 force_dic_write = True
             if my_model_no == 2:
                 if self.no2_rest():
@@ -588,14 +426,14 @@ class MiyaClient(discord.Client):
 
         elif message.content == sleep_msg[1][partner_model_no-1]:  # おやすみ
             print('partner_sleep=1')
-            if latest_dic["flags"]["sleep_mode_partner"] != 1:
-                latest_dic["flags"]["sleep_mode_partner"] = 1
+            if self.latest_dic["flags"]["sleep_mode_partner"] != 1:
+                self.latest_dic["flags"]["sleep_mode_partner"] = 1
                 force_dic_write = True
                 if my_model_no == 2:
                     self.no2_wake('おやすみなさい1号。では引き継ぎます')
         else:
             if my_model_no == 2:
-                if latest_dic["flags"]["sleep_mode_partner"] == 0:
+                if self.latest_dic["flags"]["sleep_mode_partner"] == 0:
                     if self.no2_rest():
                         print('休憩します')
                         no1_name = '1号'  # message.author.name
@@ -682,14 +520,14 @@ class MiyaClient(discord.Client):
     # スリープモードの変更
 
     async def set_sleep_mode(self, message, model_no, onoff):
-        global latest_dic, force_dic_write
+        global force_dic_write
         if my_model_no != model_no:
             return
 
-        if latest_dic["flags"]["sleep_mode"] == onoff:
+        if self.latest_dic["flags"]["sleep_mode"] == onoff:
             return
 
-        latest_dic["flags"]["sleep_mode"] = onoff
+        self.latest_dic["flags"]["sleep_mode"] = onoff
         force_dic_write = True
         print('sleep_mode={0}'.format(onoff))
 
@@ -701,14 +539,14 @@ class MiyaClient(discord.Client):
     # 2号くんを休憩させる
 
     def no2_rest(self):
-        global latest_dic, force_dic_write
-        if latest_dic["flags"]["sleep_mode_partner"] != 0:
+        global force_dic_write
+        if self.latest_dic["flags"]["sleep_mode_partner"] != 0:
             self.q.put('いえ。1号が寝ているので続けます')
             return False
         self.last_send_time = time.time()
         self.no2_msg.clear()
-        if latest_dic["flags"]["send_enable"] != 0:
-            latest_dic["flags"]["send_enable"] = 0
+        if self.latest_dic["flags"]["send_enable"] != 0:
+            self.latest_dic["flags"]["send_enable"] = 0
             force_dic_write = True
             return True
         return False
@@ -716,10 +554,10 @@ class MiyaClient(discord.Client):
     # 2号くんを休憩から戻す
 
     def no2_wake(self, comment=''):
-        global latest_dic
-        latest_dic["flags"]["sleep_mode"] = 0
-        if latest_dic["flags"]["send_enable"] == 0:
-            latest_dic["flags"]["send_enable"] = 1
+        self.latest_dic
+        self.latest_dic["flags"]["sleep_mode"] = 0
+        if self.latest_dic["flags"]["send_enable"] == 0:
+            self.latest_dic["flags"]["send_enable"] = 1
             if comment != '':
                 self.q.put(comment)
             for s in self.no2_msg:
@@ -750,16 +588,16 @@ class MiyaClient(discord.Client):
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
         for task in asyncio.all_tasks():
-            print(task.get_name())
-            if task.get_name() == guild.name:
+            print(task.self.mt.get_name())
+            if task.self.mt.get_name() == guild.name:
                 task.cancel()
 
     async def on_disconnect(self):
         print("Disconnected")
         names = [i.name for i in self.guilds]
         for task in asyncio.all_tasks():
-            print(task.get_name())
-            if task.get_name() in names:
+            print(task.self.mt.get_name())
+            if task.self.mt.get_name() in names:
                 task.cancel()
                 print("Canceled: "+str(names))
         print("Stopped")
