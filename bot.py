@@ -135,7 +135,7 @@ class MiyaClient(discord.Client):
 
             if id < 0 or following < 0:
                 reset = self.mt.get_limit()
-                dt = datetime.datetime.froself.mtimestamp(reset)
+                dt = datetime.datetime.fromtimestamp(reset)
 
                 self.q.put("[BOT] Twitterのリミット制限。一旦休憩します。（再開:{}）".format(dt))
                 return abs(int(reset)-int(time.time()))
@@ -151,7 +151,7 @@ class MiyaClient(discord.Client):
                         else:
                             self.q.put(i)
 
-                    self.mj.set_id(k,id)
+                    self.mj.set_id(k, id)
 
                 if profimg != '' and profimg != self.mj.latest_dic["profile_image_url"][str(k)]:
                     self.mj.latest_dic["flags"]["update_count"] += 1
@@ -594,7 +594,7 @@ class MiyaClient(discord.Client):
         print("Disconnected")
         names = [i.name for i in self.guilds]
         for task in asyncio.all_tasks():
-            print(task.mt.get_name())
+            print(task.get_name())
             if task.get_name() in names:
                 task.cancel()
                 print("Canceled: "+str(names))
