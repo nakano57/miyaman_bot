@@ -38,17 +38,11 @@ class MiyaTwi():
 
         message = []
         id = 0
-        profimg = ''
-        bannerimg = ''
         provisional_str = config.PROV_STR if idx >= config.PROVISIONAL_LINE and self.my_model_no == 2 else ''
 
         # 死神だけは何も返ってこない
         if res.text == '':
             print(res.text)
-
-        # 死神仮対処
-        if idx == 8 and res.status_code == 200 and len(res.text) < 3:
-            profimg = 'https://abs.twimg.com/sticky/default_profile_images/default_profile.png'
 
         if res.status_code == 200:  # 正常通信出来た場合
             timelines = json.loads(res.text)  # レスポンスからタイムラインリストを取得
@@ -58,19 +52,12 @@ class MiyaTwi():
                 n = statuses_count - latest_dic["statuses_count"][str(idx)]
                 latest_dic["statuses_count"][str(idx)] = statuses_count
                 if n > 1:
-                    message, id, profimg, bannerimg = self.get_latest_tweets(
+                    message, id = self.get_latest_tweets(
                         screen_name, idx, n)
                     message.reverse()
                     return message, id
 
             for line in timelines:  # タイムラインリストをループ処理
-
-                if 'profile_image_url_https' in line['user']:
-                    img = line['user']['profile_image_url_https']
-                    profimg = img.replace('_normal.', '.')
-
-                if 'profile_banner_url' in line['user']:
-                    bannerimg = line['user']['profile_banner_url']
 
                 message.append('{2}https://twitter.com/{0}/status/{1}'.format(
                     screen_name, line['id_str'], provisional_str))
@@ -82,7 +69,7 @@ class MiyaTwi():
             message = "Failed: %d" % res.status_code
             id = -1
 
-        return message, id, profimg, bannerimg
+        return message, id
 
     def get_limit(self):
         res = self.twitter.get(self.limit)
@@ -107,17 +94,25 @@ class MiyaTwi():
         ret = 0
         fav = 0
         name = ''
+        profimg = ''
+        bannerimg = ''
 
         if res.status_code == 200:  # 正常通信出来た場合
             following = json.loads(res.text)  # レスポンスからタイムラインリストを取得
             ret = following["friends_count"]
             name = following["name"]
             fav = following["favourites_count"]
+
+            if 'profile_image_url_https' in following:
+                profimg = following['profile_image_url_https'].replace('_normal.', '.')
+            if 'profile_banner_url' in following:
+                bannerimg = following['profile_banner_url']
+
         else:  # 正常通信出来なかった場合
             print('正常通信出来なかった場合: get_followings')
             ret = -1
 
-        return ret, name, fav
+        return ret, name, fav, profimg, bannerimg
 
     def get_fav_tweet(self, screen_name):
         params = {

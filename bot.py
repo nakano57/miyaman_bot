@@ -126,9 +126,9 @@ class MiyaClient(discord.Client):
     def tweet_report(self):
         for k, v in Miyajson.dic.items():
             try:
-                urls, id, profimg, bannerimg = self.mt.get_latest_tweets(
+                urls, id = self.mt.get_latest_tweets(
                     self.mj.latest_dic, v, k, 1)
-                following, name, fav = self.mt.get_followings(v)
+                following, name, fav, profimg, bannerimg = self.mt.get_followings(v)
             except Exception as e:
                 print(e)
                 continue
