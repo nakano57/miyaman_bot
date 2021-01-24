@@ -38,9 +38,9 @@ ex_rt = []
 repatter1 = []
 pattern_base1 = '(ロボ|ろぼ)(ット|っと)?(くん|君|クン)'
 pattern_list1 = [
-    ['ななかわ', 'ナナカワ！'],
-    ['りやりや', 'リヤリヤ！'],
-    ['いおいお', 'イオイオ！'],
+    ['ななかわ', 'ナナカワ！<:m_2_nanano:791168443851604008>'],
+    ['りやりや', 'リヤリヤ！<:m_3_riya:791168443910848542>'],
+    ['いおいお', 'イオイオ！<:m_7_iori:802890076321349632>'],
     ['(タスケテ|たすけて|助けて|救けて)', ':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ'],
     ['(参加).*(数|何人|何名|おしえて|教えて)', '[NO2_COUNT]'],
     # ['(ずがずが|ズガズガ)', '[NO2_MSG]ズガズガ？'],
@@ -387,6 +387,7 @@ class MiyaClient(discord.Client):
 
         # if ':m_6_hikari:' in message.content or ':m_4_reiko:' in message.content:
         #    print(message.content)
+        # print(message.content)
 
         # 参加者からのメッセージ対応
         for r in repatter1:
@@ -497,7 +498,8 @@ class MiyaClient(discord.Client):
             ds = [
                 '<:m_1_ichigo:791168439301439519>', '<:m_2_nanano:791168443851604008>',
                 '<:m_3_riya:791168443910848542>', '<:m_4_reiko:791168442966343680>',
-                '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>']
+                '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>',
+                '<:m_7_iori:802890076321349632>']
             random.shuffle(ds)
             await message.channel.send(ds[0] + ' ' + ds[1] + ' ' + ds[2] + ' ' + ds[3] + ' ' + ds[4] + ' ' + ds[5])
 
@@ -520,7 +522,8 @@ class MiyaClient(discord.Client):
             ds = [
                 '<:m_1_ichigo:791168439301439519>', '<:m_2_nanano:791168443851604008>',
                 '<:m_3_riya:791168443910848542>', '<:m_4_reiko:791168442966343680>',
-                '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>']
+                '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>',
+                '<:m_7_iori:802890076321349632>']
             s1 = random.randint(0, 5)
             s2 = random.randint(0, 5)
             s3 = random.randint(0, 5)
@@ -597,29 +600,42 @@ class MiyaClient(discord.Client):
     def add_account(self, screen_name):
         res, k = self.mt.screen_name_to_id(screen_name)
         if res < 0:
-            self.q.put("[BOT]エラーが発生しました")
-            self.q2.put(config.PROV_STR+"[BOT]エラーが発生しました")
+            if MODEL_NO_2_ENABLE:
+                self.q2.put(config.PROV_STR+"[BOT]エラーが発生しました")
+            else:
+                self.q.put("[BOT]エラーが発生しました")
             return -1
         print(screen_name, k)
         self.mj.add_key(k)
         self.update_json()
-        self.q.put("[BOT]"+screen_name+"を追加しました")
-        self.q2.put(config.PROV_STR+"[BOT]"+screen_name+"を追加しました")
+
+        if MODEL_NO_2_ENABLE:
+            self.q2.put(config.PROV_STR+"[BOT]"+screen_name+"を追加しました")
+        else:
+            self.q.put("[BOT]"+screen_name+"を追加しました")
 
     def delete_account(self, screen_name):
         res, k = self.mt.screen_name_to_id(screen_name)
         if res < 0:
-            self.q.put("[BOT]エラーが発生しました")
-            self.q2.put(config.PROV_STR+"[BOT]エラーが発生しました")
+            if MODEL_NO_2_ENABLE:
+                self.q2.put(config.PROV_STR+"[BOT]エラーが発生しました")
+            else:
+                self.q.put("[BOT]エラーが発生しました")
             return -1
+
         print(screen_name, k)
         res = self.mj.delete_key(k)
         if res < 0:
-            self.q.put("[BOT]エラーが発生しました")
-            self.q2.put(config.PROV_STR+"[BOT]エラーが発生しました")
+            if MODEL_NO_2_ENABLE:
+                self.q2.put(config.PROV_STR+"[BOT]エラーが発生しました")
+            else:
+                self.q.put("[BOT]エラーが発生しました")
             return -1
-        self.q.put("[BOT]"+screen_name+"を削除しました")
-        self.q2.put(config.PROV_STR+"[BOT]"+screen_name+"を削除しました")
+
+        if MODEL_NO_2_ENABLE:
+            self.q2.put(config.PROV_STR+"[BOT]"+screen_name+"を削除しました")
+        else:
+            self.q.put("[BOT]"+screen_name+"を削除しました")
 
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
