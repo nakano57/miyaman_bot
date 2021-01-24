@@ -40,6 +40,7 @@ pattern_base1 = '(ロボ|ろぼ)(ット|っと)?(くん|君|クン)'
 pattern_list1 = [
     ['ななかわ', 'ナナカワ！'],
     ['りやりや', 'リヤリヤ！'],
+    ['いおいお', 'イオイオ！'],
     ['(タスケテ|たすけて|助けて|救けて)', ':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ'],
     ['(参加).*(数|何人|何名|おしえて|教えて)', '[NO2_COUNT]'],
     # ['(ずがずが|ズガズガ)', '[NO2_MSG]ズガズガ？'],
@@ -127,7 +128,7 @@ class MiyaClient(discord.Client):
         for k, v in Miyajson.dic.items():
             try:
                 urls, id, profimg, bannerimg = self.mt.get_latest_tweets(
-                    self.mj.latest_dic, v, k, 1)
+                    v, k, 1)
                 following, name, fav = self.mt.get_followings(v)
             except Exception as e:
                 print(e)
@@ -153,42 +154,41 @@ class MiyaClient(discord.Client):
 
                     self.mj.set_id(k, id)
 
-                if profimg != '' and profimg != self.mj.latest_dic["profile_image_url"][str(k)]:
+                if profimg != '' and profimg != self.mj.get_profile_image_url(k):
                     self.mj.latest_dic["flags"]["update_count"] += 1
 
                     ss = '{0} のプロフィール画像が変更されました\n{1}'.format(v, profimg)
                     # print(ss)
                     self.q.put(ss)
 
-                    self.mj.latest_dic["profile_image_url"][str(k)] = profimg
+                    self.mj.set_profile_banner_url(k, profimg)
 
-                if bannerimg != '' and bannerimg != self.mj.latest_dic["profile_banner_url"][str(k)]:
+                if bannerimg != '' and bannerimg != self.mj.get_profile_banner_url(k):
                     self.mj.latest_dic["flags"]["update_count"] += 1
 
                     ss = '{0} のヘッダー画像が変更されました\n{1}'.format(v, bannerimg)
                     # print(ss)
                     self.q.put(ss)
 
-                    self.mj.latest_dic["profile_banner_url"][str(
-                        k)] = bannerimg
+                    self.mj.set_profile_banner_url(k, bannerimg)
 
-                if following != self.mj.latest_dic["followings"][str(k)]:
+                if following != self.mj.get_following(k):
                     self.mj.latest_dic["flags"]["update_count"] += 1
                     self.mj.latest_dic["flags"]["follow_count"] += 1
 
                     self.follow_list.add(name)
 
-                    bef = self.mj.latest_dic["followings"][str(k)]
+                    bef = self.mj.get_following(k)
 
                     if not(v in ex_follow):
                         self.q.put(name+"のフォロー数が"+str(bef) +
                                    "から"+str(following)+"になりました")
 
-                    self.mj.latest_dic["followings"][str(k)] = following
+                    self.mj.set_following(k, following)
 
                 sec = datetime.datetime.now().second
                 if int(self.mt.my_round(sec, -1)/10) % 3 == 0:
-                    if fav != self.mj.latest_dic["favorites"][str(k)]:
+                    if fav != self.mj.get_favorite(k):
                         self.mj.latest_dic["flags"]["update_count"] += 1
                         self.mj.latest_dic["flags"]["iine_count"] += 1
 
@@ -197,13 +197,13 @@ class MiyaClient(discord.Client):
                         if fav > 0:
                             _, id = self.mt.get_fav_tweet(v)
 
-                        bef = self.mj.latest_dic["favorites"][str(k)]
+                        bef = self.mj.get_favorite(k)
 
                         if not (v in ex_iine):
                             self.q.put(name+"のいいね数が"+str(bef) +
                                        "から"+str(fav)+"になりました")
 
-                        self.mj.latest_dic["favorites"][str(k)] = fav
+                        self.mj.set_favorite(k, fav)
         return 0
 
     def regular_report(self):

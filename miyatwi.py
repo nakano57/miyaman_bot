@@ -9,6 +9,8 @@ import config
 
 class MiyaTwi():
 
+    mj = Miyajson()
+
     # 死神がいっこもツイートしていないせいでこれだとフォロワーを取得できない
     user_timeline = "https://api.twitter.com/1.1/statuses/user_timeline.json"  # タイムライン取得エンドポイント
     limit = "https://api.twitter.com/1.1/application/rate_limit_status.json"
@@ -26,7 +28,7 @@ class MiyaTwi():
 
         self.my_model_no = modelNo
 
-    def get_latest_tweets(self, latest_dic, screen_name, idx, count):
+    def get_latest_tweets(self,  screen_name, idx, count):
 
         params = {
             'count': count,
@@ -55,8 +57,9 @@ class MiyaTwi():
 
             if count == 1 and timelines:  # 初回かつ死神以外
                 statuses_count = timelines[0]['user']['statuses_count']
-                n = statuses_count - latest_dic["statuses_count"][str(idx)]
-                latest_dic["statuses_count"][str(idx)] = statuses_count
+                n = statuses_count - self.mj.get_statuses_count(idx)
+                self.mj.set_statuses_count(idx, statuses_count)
+
                 if n > 1:
                     message, id, profimg, bannerimg = self.get_latest_tweets(
                         screen_name, idx, n)

@@ -39,26 +39,32 @@ class Miyajson():
     def set_id(self, k, n):
         self.latest_dic["ids"][str(k)] = n
 
-    def get_following(self, k, n):
-        pass
+    def get_following(self, k):
+        return self.latest_dic["followings"][str(k)]
 
     def set_following(self, k, n):
-        pass
+        self.latest_dic["followings"][str(k)] = n
 
-    def get_favorite(self, k, n):
-        pass
+    def get_favorite(self, k):
+        return self.latest_dic["favorites"][str(k)]
 
     def set_favorite(self, k, n):
-        pass
+        self.latest_dic["favorites"][str(k)] = n
 
-    def get_statuses_count(self, k, n):
-        pass
+    def get_statuses_count(self, k):
+        return self.latest_dic["statuses_count"][str(k)]
 
     def set_statuses_count(self, k, n):
-        pass
+        self.latest_dic["statuses_count"][str(k)] = n
 
-    def get_profile_image_url(self, k, n):
-        pass
+    def get_profile_image_url(self, k):
+        return self.latest_dic["profile_image_url"][str(k)]
+
+    def set_profile_image_url(self, k, n):
+        self.latest_dic["profile_image_url"][str(k)] = n
+
+    def get_profile_banner_url(self, k):
+        return self.latest_dic["profile_banner_url"][str(k)]
 
     def set_profile_banner_url(self, k, n):
-        pass
+        self.latest_dic["profile_banner_url"][str(k)] = n
