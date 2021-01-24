@@ -152,7 +152,7 @@ class MiyaClient(discord.Client):
             else:
 
                 if id != self.mj.get_id(user_id):
-                    self.mj.latest_dic["flags"]["update_count"] += 1
+                    self.mj.update_count += 1
 
                     for i in urls:
                         if config.PROV_STR in i:
@@ -163,7 +163,7 @@ class MiyaClient(discord.Client):
                     self.mj.set_id(user_id, id)
 
                 if profimg != '' and profimg != self.mj.get_profile_image_url(user_id):
-                    self.mj.latest_dic["flags"]["update_count"] += 1
+                    self.mj.update_count += 1
 
                     ss = '{0} のプロフィール画像が変更されました\n{1}'.format(
                         screen_name, profimg)
@@ -173,7 +173,7 @@ class MiyaClient(discord.Client):
                     self.mj.set_profile_image_url(user_id, profimg)
 
                 if bannerimg != '' and bannerimg != self.mj.get_profile_banner_url(user_id):
-                    self.mj.latest_dic["flags"]["update_count"] += 1
+                    self.mj.update_count += 1
 
                     ss = '{0} のヘッダー画像が変更されました\n{1}'.format(
                         screen_name, bannerimg)
@@ -183,8 +183,8 @@ class MiyaClient(discord.Client):
                     self.mj.set_profile_banner_url(user_id, bannerimg)
 
                 if following != self.mj.get_following(user_id):
-                    self.mj.latest_dic["flags"]["update_count"] += 1
-                    self.mj.latest_dic["flags"]["follow_count"] += 1
+                    self.mj.update_count += 1
+                    self.mj.follow_count += 1
 
                     self.follow_list.add(name)
 
@@ -199,8 +199,8 @@ class MiyaClient(discord.Client):
                 sec = datetime.datetime.now().second
                 if int(self.mt.my_round(sec, -1)/10) % 3 == 0:
                     if fav != self.mj.get_favorite(user_id):
-                        self.mj.latest_dic["flags"]["update_count"] += 1
-                        self.mj.latest_dic["flags"]["iine_count"] += 1
+                        self.mj.update_count += 1
+                        self.mj.iine_count += 1
 
                         self.iine_list.add(name)
 
@@ -214,14 +214,14 @@ class MiyaClient(discord.Client):
         return 0
 
     def regular_report(self):
-        if self.mj.latest_dic["flags"]["update_count"] == 0:
+        if self.mj.update_count == 0:
             self.q.put('[BOT]この15分間で各Twitterアカウントに変化はありませんでした')
         else:
-            self.q.put('[BOT]この15分間で各Twitterアカウントに更新が'+str(self.mj.latest_dic["flags"]["update_count"])+'件ありました（内いいね' +
-                       str(self.mj.latest_dic["flags"]["iine_count"])+'件、フォロー'+str(self.mj.latest_dic["flags"]["follow_count"])+'件）')
-        self.mj.latest_dic["flags"]["update_count"] = 0
-        self.mj.latest_dic["flags"]["iine_count"] = 0
-        self.mj.latest_dic["flags"]["follow_count"] = 0
+            self.q.put('[BOT]この15分間で各Twitterアカウントに更新が'+str(self.mj.update_count)+'件ありました（内いいね' +
+                       str(self.mj.iine_count)+'件、フォロー'+str(self.mj.follow_count)+'件）')
+        self.mj.update_count = 0
+        self.mj.iine_count = 0
+        self.mj.follow_count = 0
 
     def life_report(self):
         dt = datetime.datetime.now()
@@ -262,7 +262,7 @@ class MiyaClient(discord.Client):
             self.post_once = True
 
         return self.post_once
-    
+
     def alarm(self):
         pass
 
@@ -301,7 +301,7 @@ class MiyaClient(discord.Client):
 
             start = time.time()
             print("update: " + datetime.datetime.now().isoformat() +
-                  " count = "+str(self.mj.latest_dic["flags"]["update_count"]))
+                  " count = "+str(self.mj.update_count))
 
             wait = self.tweet_report()
 

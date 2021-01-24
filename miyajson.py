@@ -32,7 +32,20 @@ class Miyajson():
 
         self.dic = list(map(int, list(self.latest_dic["ids"].keys())))
 
+        self.update_count = self.latest_dic["flags"]["update_count"]
+        self.iine_count = self.latest_dic["flags"]["iine_count"]
+        self.follow_count = self.latest_dic["flags"]["follow_count"]
+        self.send_enable = self.latest_dic["flags"]["send_enable"]
+        self.sleep_mode = self.latest_dic["flags"]["sleep_mode"]
+        self.sleep_mode_partner = self.latest_dic["flags"]["sleep_mode_partner"]
+
     def dump(self):
+        self.latest_dic["flags"]["update_count"] = self.update_count
+        self.latest_dic["flags"]["iine_count"] = self.iine_count
+        self.latest_dic["flags"]["follow_count"] = self.follow_count
+        self.latest_dic["flags"]["send_enable"] = self.send_enable
+        self.latest_dic["flags"]["sleep_mode"] = self.sleep_mode
+        self.latest_dic["flags"]["sleep_mode_partner"] = self.sleep_mode_partner
         with open(sys.argv[1], "w") as f:
             try:
                 json.dump(self.latest_dic, f, indent=4)
@@ -75,6 +88,18 @@ class Miyajson():
 
     def set_profile_banner_url(self, k, n):
         self.latest_dic["profile_banner_url"][str(k)] = n
+
+    def get_screen_name(self, k):
+        pass
+
+    def set_screen_name(self, k, n):
+        pass
+
+    def get_name(self, k):
+        pass
+
+    def set_name(self, k, n):
+        pass
 
     def add_key(self, k):
         d = {str(k): 0}
