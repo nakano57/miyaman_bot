@@ -2,7 +2,6 @@ from requests_oauthlib import OAuth1Session
 import json
 import time
 
-from miyajson import Miyajson
 import config
 
 

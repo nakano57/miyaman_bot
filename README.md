@@ -13,3 +13,10 @@ Twitter関係
 コンシューマーキー等
 - dump.json
 データのダンプ
+- runcoldbot.service
+systemdでサービス化するのに使用
+
+## いるもの
+- Python 3.9.0 or later
+- requests_oauthlib
+- discord.py

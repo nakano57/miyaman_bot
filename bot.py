@@ -1,7 +1,6 @@
 #!/usr/local/bin/python3
 # nohup /home/pi/ProjectColdBot/bot.py /home/pi/ProjectColdBot/dump.json >/dev/null &
 
-import json
 import discord
 import datetime
 import sys
