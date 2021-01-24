@@ -315,7 +315,7 @@ class MiyaClient(discord.Client):
                     no1_name = '1号'  # gmem.name
                     if gmem.raw_status == 'online':
                         offline_cnt = 0
-                        if self.mj.latest_dic["flags"]["sleep_mode_partner"] == 0:
+                        if self.mj.sleep_mode_partner == 0:
                             if self.no2_rest():
                                 # すでに休憩モードに入っているのでqueueに入れてもダメなのでsend
                                 for i in post_channels:
@@ -349,9 +349,9 @@ class MiyaClient(discord.Client):
                 for i in post_channels:
                     msg = self.q.get()
                     print(msg)
-                    if self.mj.latest_dic["flags"]["sleep_mode"] == 0:
+                    if self.mj.sleep_mode == 0:
                         if MODEL_NO_2_ENABLE:
-                            if self.mj.latest_dic["flags"]["send_enable"] == 1:
+                            if self.mj.send_enable == 1:
                                 await i.send(msg)
                             else:
                                 self.no2_msg.append(msg)
@@ -430,8 +430,8 @@ class MiyaClient(discord.Client):
         global force_dic_write
         if message.content == sleep_msg[0][partner_model_no-1]:  # おはよう
             print('partner_sleep=0')
-            if self.mj.latest_dic["flags"]["sleep_mode_partner"] != 0:
-                self.mj.latest_dic["flags"]["sleep_mode_partner"] = 0
+            if self.mj.sleep_mode_partner != 0:
+                self.mj.sleep_mode_partner = 0
                 force_dic_write = True
             if my_model_no == 2:
                 if self.no2_rest():
@@ -439,14 +439,14 @@ class MiyaClient(discord.Client):
 
         elif message.content == sleep_msg[1][partner_model_no-1]:  # おやすみ
             print('partner_sleep=1')
-            if self.mj.latest_dic["flags"]["sleep_mode_partner"] != 1:
-                self.mj.latest_dic["flags"]["sleep_mode_partner"] = 1
+            if self.mj.sleep_mode_partner != 1:
+                self.mj.sleep_mode_partner = 1
                 force_dic_write = True
                 if my_model_no == 2:
                     self.no2_wake('おやすみなさい1号。では引き継ぎます')
         else:
             if my_model_no == 2:
-                if self.mj.latest_dic["flags"]["sleep_mode_partner"] == 0:
+                if self.mj.sleep_mode_partner == 0:
                     if self.no2_rest():
                         print('休憩します')
                         no1_name = '1号'  # message.author.name
@@ -539,10 +539,10 @@ class MiyaClient(discord.Client):
         if my_model_no != model_no:
             return
 
-        if self.mj.latest_dic["flags"]["sleep_mode"] == onoff:
+        if self.mj.sleep_mode == onoff:
             return
 
-        self.mj.latest_dic["flags"]["sleep_mode"] = onoff
+        self.mj.sleep_mode = onoff
         force_dic_write = True
         print('sleep_mode={0}'.format(onoff))
 
@@ -555,13 +555,13 @@ class MiyaClient(discord.Client):
 
     def no2_rest(self):
         global force_dic_write
-        if self.mj.latest_dic["flags"]["sleep_mode_partner"] != 0:
+        if self.mj.sleep_mode_partner != 0:
             self.q.put('いえ。1号が寝ているので続けます')
             return False
         self.last_send_time = time.time()
         self.no2_msg.clear()
-        if self.mj.latest_dic["flags"]["send_enable"] != 0:
-            self.mj.latest_dic["flags"]["send_enable"] = 0
+        if self.mj.send_enable != 0:
+            self.mj.send_enable = 0
             force_dic_write = True
             return True
         return False
@@ -569,10 +569,9 @@ class MiyaClient(discord.Client):
     # 2号くんを休憩から戻す
 
     def no2_wake(self, comment=''):
-        self.mj.latest_dic
-        self.mj.latest_dic["flags"]["sleep_mode"] = 0
-        if self.mj.latest_dic["flags"]["send_enable"] == 0:
-            self.mj.latest_dic["flags"]["send_enable"] = 1
+        self.mj.sleep_mode = 0
+        if self.mj.send_enable == 0:
+            self.mj.send_enable = 1
             if comment != '':
                 self.q.put(comment)
             for s in self.no2_msg:
@@ -642,6 +641,7 @@ class MiyaClient(discord.Client):
 
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
+        self.mj.dump()
         for task in asyncio.all_tasks():
             print(task.get_name())
             if task.get_name() == guild.name:
@@ -649,6 +649,7 @@ class MiyaClient(discord.Client):
 
     async def on_disconnect(self):
         print("Disconnected")
+        self.mj.dump()
         names = [i.name for i in self.guilds]
         for task in asyncio.all_tasks():
             print(task.get_name())
