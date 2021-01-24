@@ -35,6 +35,14 @@ ex_rt = []
 
 # config.POST_CHANNEL_CONFIG = ['考察1st', 'bot用','｢reaper｣-｢unknown｣-｢i｣監視']
 
+### メモ
+# アカウント追加
+# botctl add <screen_name>
+#
+# アカウント削除
+# botctl delete <screen_name>
+###
+
 repatter1 = []
 pattern_base1 = '(ロボ|ろぼ)(ット|っと)?(くん|君|クン)'
 pattern_list1 = [
@@ -415,14 +423,14 @@ class MiyaClient(discord.Client):
         if my_model_no == 2 and message.author.id == MODEL_NO_1_ID:  # 1号くんの発言があった
             await self.check_partner_message(message)
 
-        # テスト用
-        testlist = message.content.split()
-        print("[BOT]" + str(testlist))
-        if "botctl" in testlist:
-            if "add" in testlist:
-                self.add_account(testlist[2])
-            elif "delete" in testlist:
-                self.delete_account(testlist[2])
+        # アカウントの追加・削除
+        commandlist = message.content.split()
+        print("[BOT]" + str(commandlist))
+        if "botctl" in commandlist:
+            if "add" in commandlist:
+                self.add_account(commandlist[2])
+            elif "delete" in commandlist:
+                self.delete_account(commandlist[2])
 
     # 相棒からのメッセージを調べる
 

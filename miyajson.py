@@ -2,6 +2,7 @@ import sys
 import json
 
 
+# データダンプ用のjsonのwrapper
 class Miyajson():
     dic_base = {0: "binarycity_i",
                 1: "strawberry_fore",
