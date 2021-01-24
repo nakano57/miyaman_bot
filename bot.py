@@ -601,7 +601,8 @@ class MiyaClient(discord.Client):
         print(screen_name, k)
         self.mj.add_key(k)
         self.update_json()
-        self.q.put("[TEST]"+screen_name+"を追加しました")
+        self.q.put("[BOT]"+screen_name+"を追加しました")
+        self.q2.put(config.PROV_STR+"[BOT]"+screen_name+"を追加しました")
 
     def delete_account(self, screen_name):
         res, k = self.mt.screen_name_to_id(screen_name)
@@ -609,7 +610,8 @@ class MiyaClient(discord.Client):
             return -1
         print(screen_name, k)
         self.mj.delete_key(k)
-        self.q.put("[TEST]"+screen_name+"を削除しました")
+        self.q.put("[BOT]"+screen_name+"を削除しました")
+        self.q2.put(config.PROV_STR+"[BOT]"+screen_name+"を削除しました")
 
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
