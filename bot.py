@@ -413,8 +413,8 @@ class MiyaClient(discord.Client):
 
         # テスト用
         testlist = message.content.split()
-        print("[TEST]" + str(testlist))
-        if "test" in testlist:
+        print("[BOT]" + str(testlist))
+        if "sudo" in testlist:
             if "add" in testlist:
                 self.add_account(testlist[2])
             if "delete" in testlist:
