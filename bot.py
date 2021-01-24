@@ -651,8 +651,8 @@ class MiyaClient(discord.Client):
         print("Guild Unavailable: " + guild.name)
         self.mj.dump()
         for task in asyncio.all_tasks():
-            print(task.self.mt.get_name())
-            if task.self.mt.get_name() == guild.name:
+            print(task.get_name())
+            if task.get_name() == guild.name:
                 task.cancel()
 
     async def on_disconnect(self):
@@ -660,8 +660,8 @@ class MiyaClient(discord.Client):
         self.mj.dump()
         names = [i.name for i in self.guilds]
         for task in asyncio.all_tasks():
-            print(task.self.mt.get_name())
-            if task.self.mt.get_name() in names:
+            print(task.get_name())
+            if task.get_name() in names:
                 task.cancel()
                 print("Canceled: "+str(names))
         print("Stopped")
