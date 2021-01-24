@@ -35,7 +35,7 @@ ex_rt = []
 
 # config.POST_CHANNEL_CONFIG = ['考察1st', 'bot用','｢reaper｣-｢unknown｣-｢i｣監視']
 
-### メモ
+# メモ
 # アカウント追加
 # botctl add <screen_name>
 #
