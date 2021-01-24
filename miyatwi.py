@@ -9,8 +9,6 @@ import config
 
 class MiyaTwi():
 
-    mj = Miyajson()
-
     # 死神がいっこもツイートしていないせいでこれだとフォロワーを取得できない
     user_timeline = "https://api.twitter.com/1.1/statuses/user_timeline.json"  # タイムライン取得エンドポイント
     limit = "https://api.twitter.com/1.1/application/rate_limit_status.json"
@@ -28,11 +26,11 @@ class MiyaTwi():
 
         self.my_model_no = modelNo
 
-    def get_latest_tweets(self,  screen_name, idx, count):
+    def get_latest_tweets(self, mj, idx,  count):
 
         params = {
             'count': count,
-            'screen_name': screen_name,
+            'id': idx,
             'exclude_replies': 'false'
         }
 
@@ -41,6 +39,7 @@ class MiyaTwi():
         message = []
         id = 0
         provisional_str = config.PROV_STR if idx >= config.PROVISIONAL_LINE and self.my_model_no == 2 else ''
+        screen_name = ''
 
         # 死神だけは何も返ってこない
         if res.text == '':
@@ -51,12 +50,12 @@ class MiyaTwi():
 
             if count == 1 and timelines:  # 初回かつ死神以外
                 statuses_count = timelines[0]['user']['statuses_count']
-                n = statuses_count - self.mj.get_statuses_count(idx)
-                self.mj.set_statuses_count(idx, statuses_count)
+                screen_name = timelines[0]['user']['screen_name']
+                n = statuses_count - mj.get_statuses_count(idx)
+                mj.set_statuses_count(idx, statuses_count)
 
                 if n > 1:
-                    message, id = self.get_latest_tweets(
-                        screen_name, idx, n)
+                    message, id = self.get_latest_tweets(mj, idx, n)
                     message.reverse()
                     return message, id
 
@@ -88,9 +87,10 @@ class MiyaTwi():
 
         return ret
 
-    def get_followings(self, screen_name):
+    def get_show_user(self, id):
+
         params = {
-            'screen_name': screen_name,
+            'id': id,
         }
         res = self.twitter.get(self.show_user, params=params)
 
@@ -99,15 +99,18 @@ class MiyaTwi():
         name = ''
         profimg = ''
         bannerimg = ''
+        screen_name = ''
 
         if res.status_code == 200:  # 正常通信出来た場合
             following = json.loads(res.text)  # レスポンスからタイムラインリストを取得
             ret = following["friends_count"]
             name = following["name"]
             fav = following["favourites_count"]
+            screen_name = following["screen_name"]
 
             if 'profile_image_url_https' in following:
-                profimg = following['profile_image_url_https'].replace('_normal.', '.')
+                profimg = following['profile_image_url_https'].replace(
+                    '_normal.', '.')
             if 'profile_banner_url' in following:
                 bannerimg = following['profile_banner_url']
 
@@ -115,7 +118,7 @@ class MiyaTwi():
             print('正常通信出来なかった場合: get_followings')
             ret = -1
 
-        return ret, name, fav, profimg, bannerimg
+        return ret, name, fav, profimg, bannerimg, screen_name
 
     def get_fav_tweet(self, screen_name):
         params = {
@@ -139,6 +142,25 @@ class MiyaTwi():
             id = -1
 
         return message, id
+
+    def screen_name_to_id(self, screen_name):
+        params = {
+            'screen_name': screen_name,
+        }
+        res = self.twitter.get(self.show_user, params=params)
+
+        id = ''
+        ret = 0
+
+        if res.status_code == 200:  # 正常通信出来た場合
+            following = json.loads(res.text)  # レスポンスからタイムラインリストを取得
+            id = str(following["id"])
+
+        else:  # 正常通信出来なかった場合
+            print('正常通信出来なかった場合: get_followings')
+            ret = -1
+
+        return ret, id
 
     def my_round(self, val, digit=0):
         p = 10 ** digit

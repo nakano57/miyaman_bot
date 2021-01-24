@@ -125,13 +125,20 @@ class MiyaClient(discord.Client):
         print(self.mj.latest_dic)
 
     def tweet_report(self):
-        for k, v in Miyajson.dic.items():
+        # key:数字　value:screen_name
+        for user_id in self.mj.dic:
             try:
-                urls, id = self.mt.get_latest_tweets(
-                    self.mj.latest_dic, v, k, 1)
-                following, name, fav, profimg, bannerimg = self.mt.get_followings(
-                    v)
+                urls, id = self.mt.get_latest_tweets(self.mj, user_id, 1)
             except Exception as e:
+                print("get_latest_tweets : "+str(user_id))
+                print(e)
+                continue
+
+            try:
+                following, name, fav, profimg, bannerimg, screen_name = self.mt.get_show_user(
+                    user_id)
+            except Exception as e:
+                print("get_followings : " + str(user_id))
                 print(e)
                 continue
 
@@ -144,7 +151,7 @@ class MiyaClient(discord.Client):
 
             else:
 
-                if id != self.mj.get_id(k):
+                if id != self.mj.get_id(user_id):
                     self.mj.latest_dic["flags"]["update_count"] += 1
 
                     for i in urls:
@@ -153,58 +160,57 @@ class MiyaClient(discord.Client):
                         else:
                             self.q.put(i)
 
-                    self.mj.set_id(k, id)
+                    self.mj.set_id(user_id, id)
 
-                if profimg != '' and profimg != self.mj.get_profile_image_url(k):
+                if profimg != '' and profimg != self.mj.get_profile_image_url(user_id):
                     self.mj.latest_dic["flags"]["update_count"] += 1
 
-                    ss = '{0} のプロフィール画像が変更されました\n{1}'.format(v, profimg)
+                    ss = '{0} のプロフィール画像が変更されました\n{1}'.format(
+                        screen_name, profimg)
                     # print(ss)
                     self.q.put(ss)
 
-                    self.mj.set_profile_banner_url(k, profimg)
+                    self.mj.set_profile_image_url(user_id, profimg)
 
-                if bannerimg != '' and bannerimg != self.mj.get_profile_banner_url(k):
+                if bannerimg != '' and bannerimg != self.mj.get_profile_banner_url(user_id):
                     self.mj.latest_dic["flags"]["update_count"] += 1
 
-                    ss = '{0} のヘッダー画像が変更されました\n{1}'.format(v, bannerimg)
+                    ss = '{0} のヘッダー画像が変更されました\n{1}'.format(
+                        screen_name, bannerimg)
                     # print(ss)
                     self.q.put(ss)
 
-                    self.mj.set_profile_banner_url(k, bannerimg)
+                    self.mj.set_profile_banner_url(user_id, bannerimg)
 
-                if following != self.mj.get_following(k):
+                if following != self.mj.get_following(user_id):
                     self.mj.latest_dic["flags"]["update_count"] += 1
                     self.mj.latest_dic["flags"]["follow_count"] += 1
 
                     self.follow_list.add(name)
 
-                    bef = self.mj.get_following(k)
+                    bef = self.mj.get_following(user_id)
 
-                    if not(v in ex_follow):
+                    if not(screen_name in ex_follow):
                         self.q.put(name+"のフォロー数が"+str(bef) +
                                    "から"+str(following)+"になりました")
 
-                    self.mj.set_following(k, following)
+                    self.mj.set_following(user_id, following)
 
                 sec = datetime.datetime.now().second
                 if int(self.mt.my_round(sec, -1)/10) % 3 == 0:
-                    if fav != self.mj.get_favorite(k):
+                    if fav != self.mj.get_favorite(user_id):
                         self.mj.latest_dic["flags"]["update_count"] += 1
                         self.mj.latest_dic["flags"]["iine_count"] += 1
 
                         self.iine_list.add(name)
 
-                        if fav > 0:
-                            _, id = self.mt.get_fav_tweet(v)
+                        bef = self.mj.get_favorite(user_id)
 
-                        bef = self.mj.get_favorite(k)
-
-                        if not (v in ex_iine):
+                        if not (screen_name in ex_iine):
                             self.q.put(name+"のいいね数が"+str(bef) +
                                        "から"+str(fav)+"になりました")
 
-                        self.mj.set_favorite(k, fav)
+                        self.mj.set_favorite(user_id, fav)
         return 0
 
     def regular_report(self):
@@ -334,12 +340,7 @@ class MiyaClient(discord.Client):
 
             if force_dic_write or (not self.q.empty()):
                 force_dic_write = False
-                with open(sys.argv[1], "w") as f:
-                    try:
-                        json.dump(self.mj.latest_dic, f, indent=4)
-                        print("dumped")
-                    except Exception as e:
-                        print(e)
+                self.mj.dump()
 
             while not self.q.empty():
                 for i in post_channels:
@@ -366,8 +367,8 @@ class MiyaClient(discord.Client):
                 await asyncio.sleep(0.5)
 
             diff = time.time()-start
-            if diff < len(Miyajson.dic) or wait != 0:
-                await asyncio.sleep(len(Miyajson.dic)-diff+0.5+wait)
+            if diff < len(self.mj.dic) or wait != 0:
+                await asyncio.sleep(len(self.mj.dic)-diff+0.5+wait)
 
     async def on_ready(self):
         print('We have logged in as {0.user}'.format(client))
@@ -409,6 +410,15 @@ class MiyaClient(discord.Client):
 
         if my_model_no == 2 and message.author.id == MODEL_NO_1_ID:  # 1号くんの発言があった
             await self.check_partner_message(message)
+
+        # テスト用
+        testlist = message.content.split()
+        print("[TEST]" + str(testlist))
+        if "test" in testlist:
+            if "add" in testlist:
+                self.add_account(testlist[2])
+            if "delete" in testlist:
+                self.delete_account(testlist[2])
 
     # 相棒からのメッセージを調べる
 
@@ -583,6 +593,23 @@ class MiyaClient(discord.Client):
             all_num += ii
         print('直近{0}時間で、発言者数は{1}名でした。総発言数は{2}です'.format(
             hours, len(msg_cnt), all_num))
+
+    def add_account(self, screen_name):
+        res, k = self.mt.screen_name_to_id(screen_name)
+        if res < 0:
+            return -1
+        print(screen_name, k)
+        self.mj.add_key(k)
+        self.update_json()
+        self.q.put("[TEST]"+screen_name+"を追加しました")
+
+    def delete_account(self, screen_name):
+        res, k = self.mt.screen_name_to_id(screen_name)
+        if res < 0:
+            return -1
+        print(screen_name, k)
+        self.mj.delete_key(k)
+        self.q.put("[TEST]"+screen_name+"を削除しました")
 
     async def on_guild_unavailable(self, guild):
         print("Guild Unavailable: " + guild.name)
