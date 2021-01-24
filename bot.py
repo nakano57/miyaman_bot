@@ -262,6 +262,9 @@ class MiyaClient(discord.Client):
             self.post_once = True
 
         return self.post_once
+    
+    def alarm(self):
+        pass
 
     def update_json(self):
         self.tweet_report()
@@ -418,7 +421,7 @@ class MiyaClient(discord.Client):
         if "sudo" in testlist:
             if "add" in testlist:
                 self.add_account(testlist[2])
-            if "delete" in testlist:
+            elif "delete" in testlist:
                 self.delete_account(testlist[2])
 
     # 相棒からのメッセージを調べる
