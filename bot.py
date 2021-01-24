@@ -418,7 +418,7 @@ class MiyaClient(discord.Client):
         # テスト用
         testlist = message.content.split()
         print("[BOT]" + str(testlist))
-        if "sudo" in testlist:
+        if "botctl" in testlist:
             if "add" in testlist:
                 self.add_account(testlist[2])
             elif "delete" in testlist:
