@@ -90,11 +90,16 @@ class Miyajson():
         self.dic = list(map(int, list(self.latest_dic["ids"].keys())))
 
     def delete_key(self, k):
-        del self.latest_dic["ids"][str(k)]
-        del self.latest_dic["followings"][str(k)]
-        del self.latest_dic["favorites"][str(k)]
-        del self.latest_dic["statuses_count"][str(k)]
-        del self.latest_dic["profile_image_url"][str(k)]
-        del self.latest_dic["profile_banner_url"][str(k)]
+        try:
+            del self.latest_dic["ids"][str(k)]
+            del self.latest_dic["followings"][str(k)]
+            del self.latest_dic["favorites"][str(k)]
+            del self.latest_dic["statuses_count"][str(k)]
+            del self.latest_dic["profile_image_url"][str(k)]
+            del self.latest_dic["profile_banner_url"][str(k)]
+        except Exception as e:
+            print(e)
+            return -1
         self.dump()
         self.dic = list(map(int, list(self.latest_dic["ids"].keys())))
+        return 0

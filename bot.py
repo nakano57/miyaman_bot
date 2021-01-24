@@ -597,6 +597,8 @@ class MiyaClient(discord.Client):
     def add_account(self, screen_name):
         res, k = self.mt.screen_name_to_id(screen_name)
         if res < 0:
+            self.q.put("[BOT]エラーが発生しました")
+            self.q2.put(config.PROV_STR+"[BOT]エラーが発生しました")
             return -1
         print(screen_name, k)
         self.mj.add_key(k)
@@ -607,9 +609,15 @@ class MiyaClient(discord.Client):
     def delete_account(self, screen_name):
         res, k = self.mt.screen_name_to_id(screen_name)
         if res < 0:
+            self.q.put("[BOT]エラーが発生しました")
+            self.q2.put(config.PROV_STR+"[BOT]エラーが発生しました")
             return -1
         print(screen_name, k)
-        self.mj.delete_key(k)
+        res = self.mj.delete_key(k)
+        if res < 0:
+            self.q.put("[BOT]エラーが発生しました")
+            self.q2.put(config.PROV_STR+"[BOT]エラーが発生しました")
+            return -1
         self.q.put("[BOT]"+screen_name+"を削除しました")
         self.q2.put(config.PROV_STR+"[BOT]"+screen_name+"を削除しました")
 
