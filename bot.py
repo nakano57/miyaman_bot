@@ -127,8 +127,8 @@ class MiyaClient(discord.Client):
     no2_msg = []
     last_send_time = time.time()
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *, intents=None):
+        super().__init__(intents=intents)
         print(self.mj.latest_dic)
 
     def tweet_report(self):
@@ -683,11 +683,9 @@ class MiyaClient(discord.Client):
 
 
 if __name__ == '__main__':
+    intents = discord.Intents.default()
     if MODEL_NO_2_ENABLE:
-        intents = discord.Intents.default()
         intents.presences = True
         intents.members = True
-        client = MiyaClient(intents=intents)
-    else:
-        client = MiyaClient()
+    client = MiyaClient(intents=intents)
     client.run(config.DISCORD_TOKEN)
