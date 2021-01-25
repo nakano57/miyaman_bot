@@ -22,7 +22,8 @@ class Miyajson():
 
     init_json = {"ids": dic_base, "followings": dic_base,
                  "favorites": dic_base, "statuses_count": dic_base,
-                 "profile_image_url": dic_base, "profile_banner_url": dic_base}
+                 "profile_image_url": dic_base, "profile_banner_url": dic_base,
+                 "display_name": dic_base, "screen_name": dic_base}
 
     def __init__(self) -> None:
         with open(sys.argv[1]) as f:
@@ -90,11 +91,17 @@ class Miyajson():
     def set_profile_banner_url(self, k, n):
         self.latest_dic["profile_banner_url"][str(k)] = n
 
+    def get_display_name(self, k):
+        return self.latest_dic["display_name"][str(k)]
+
+    def set_display_name(self, k, n):
+        self.latest_dic["display_name"][str(k)] = n
+
     def get_screen_name(self, k):
-        pass
+        return self.latest_dic["screen_name"][str(k)]
 
     def set_screen_name(self, k, n):
-        pass
+        self.latest_dic["screen_name"][str(k)] = n
 
     def get_name(self, k):
         pass
@@ -110,6 +117,8 @@ class Miyajson():
         self.latest_dic["statuses_count"].update(d)
         self.latest_dic["profile_image_url"].update(d)
         self.latest_dic["profile_banner_url"].update(d)
+        self.latest_dic["screen_name"].update(d)
+        self.latest_dic["display_name"].update(d)
         self.dump()
         self.dic = list(map(int, list(self.latest_dic["ids"].keys())))
 
@@ -121,6 +130,8 @@ class Miyajson():
             del self.latest_dic["statuses_count"][str(k)]
             del self.latest_dic["profile_image_url"][str(k)]
             del self.latest_dic["profile_banner_url"][str(k)]
+            del self.latest_dic["screen_name"][str(k)]
+            del self.latest_dic["display_name"][str(k)]
         except Exception as e:
             print(e)
             return -1
