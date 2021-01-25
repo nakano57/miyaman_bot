@@ -26,9 +26,9 @@ my_model_no = 1 if MODEL_NO_1_ENABLE else 2
 partner_model_no = 3 - my_model_no
 
 
-#ex_iine = ["aoshima_rokusen", "actress_nanano"]
+# ex_iine = ["aoshima_rokusen", "actress_nanano"]
 ex_iine = []
-#ex_follow = ["actress_nanano"]
+# ex_follow = ["actress_nanano"]
 ex_follow = []
 ex_rt = []
 
@@ -271,7 +271,19 @@ class MiyaClient(discord.Client):
         return self.post_once
 
     def alarm(self):
-        pass
+        dt = datetime.datetime.now()
+        msg = '[BOT] '
+        if dt.hour == 16 and dt.minute == 00:
+            msg += '本日のツイート集計締め切り(17:00)まであと1時間です'
+
+        if msg != '[BOT] ':
+            if self.post_once == True:
+                self.post_once = False
+                self.q.put(msg)
+        else:
+            self.post_once = True
+
+        return self.post_once
 
     def update_json(self):
         self.tweet_report()
@@ -316,7 +328,7 @@ class MiyaClient(discord.Client):
                 if (start - self.last_send_time) > 16.5 * 60:
                     self.no2_wake('ガガガ')
 
-                gmem = guild.self.mt.get_member(MODEL_NO_1_ID)
+                gmem = guild.get_member(MODEL_NO_1_ID)
                 if gmem:
                     # print(gmem.raw_status)
                     no1_name = '1号'  # gmem.name
@@ -347,6 +359,7 @@ class MiyaClient(discord.Client):
                 self.fefteen_flag = False
 
              # self.life_report()
+            self.alarm()
 
             if force_dic_write or (not self.q.empty()):
                 force_dic_write = False
