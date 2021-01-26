@@ -177,7 +177,7 @@ class MiyaClient(discord.Client):
                     self.mj.set_id(user_id, id)
 
                 if screen_name != '' and screen_name != self.mj.get_screen_name(user_id):
-                    ss = '{0} のユーザーIDが変更されました\n{0} → {1}\nhttps://twitter.com/{1}'.format(
+                    ss = '{0} のユーザー名が変更されました\n{0} → {1}\nhttps://twitter.com/{1}'.format(
                         self.mj.get_screen_name(user_id), screen_name)
                     self.mj.set_screen_name(user_id, screen_name)
                     self.q.put(ss)
