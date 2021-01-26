@@ -113,9 +113,6 @@ for i in pattern_list_sys:
 
 force_dic_write = False
 
-if MODEL_NO_2_ENABLE:
-    print('\n！！！！　2号くんモードです　！！！！\n')
-
 
 class MiyaClient(discord.Client):
 
@@ -137,6 +134,9 @@ class MiyaClient(discord.Client):
     def __init__(self, *, intents=None):
         super().__init__(intents=intents)
         print(self.mj.latest_dic)
+
+        if MODEL_NO_2_ENABLE:
+            print('\n！！！！　2号くんモードです　！！！！\n')
 
     def tweet_report(self):
         # key:数字　value:screen_name
