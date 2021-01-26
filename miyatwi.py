@@ -24,11 +24,11 @@ class MiyaTwi():
 
         self.my_model_no = modelNo
 
-    def get_latest_tweets(self, mj, idx,  count):
+    def get_latest_tweets(self, mj, user_id, count):
 
         params = {
             'count': count,
-            'id': idx,
+            'id': user_id,
             'exclude_replies': 'false'
         }
 
@@ -36,7 +36,6 @@ class MiyaTwi():
 
         message = []
         id = 0
-        provisional_str = config.PROV_STR if idx >= config.PROVISIONAL_LINE and self.my_model_no == 2 else ''
         screen_name = ''
 
         # 死神だけは何も返ってこない
@@ -49,18 +48,18 @@ class MiyaTwi():
             if count == 1 and timelines:  # 初回かつ死神以外
                 statuses_count = timelines[0]['user']['statuses_count']
                 screen_name = timelines[0]['user']['screen_name']
-                n = statuses_count - mj.get_statuses_count(idx)
-                mj.set_statuses_count(idx, statuses_count)
+                n = statuses_count - mj.get_statuses_count(user_id)
+                mj.set_statuses_count(user_id, statuses_count)
 
                 if n > 1:
-                    message, id = self.get_latest_tweets(mj, idx, n)
+                    message, id = self.get_latest_tweets(mj, user_id, n)
                     message.reverse()
                     return message, id
 
             for line in timelines:  # タイムラインリストをループ処理
 
-                message.append('{2}https://twitter.com/{0}/status/{1}'.format(
-                    screen_name, line['id_str'], provisional_str))
+                message.append('https://twitter.com/{0}/status/{1}'.format(
+                    screen_name, line['id_str']))
                 if id == 0:
                     id = line['id']
 
