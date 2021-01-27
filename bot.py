@@ -295,14 +295,18 @@ class MiyaClient(discord.Client):
         time_cnt = 0
         offline_cnt = 0
         post_channels = []
+        surveil_channels = []
         f = False
         # print(guild.text_channels)
         for i in guild.text_channels:
             if i.name in config.POST_CHANNEL_CONFIG:
                 post_channels.append(i)
+            if i.name in config.SURVEIL_CHANNEL_CONFIG:
+                surveil_channels.append(i)
+        post_channels.extend(surveil_channels)
 
         # self.q.put('[BOT]RESTART')
-
+        print("[post_channel]")
         print(post_channels)
 
         # dump.jsonが15分以上更新されてなかった時、死んでたと判断しsendせずjsonだけをアップデート
@@ -366,8 +370,11 @@ class MiyaClient(discord.Client):
                 self.mj.dump()
 
             while not self.q.empty():
+                msg = self.q.get()
                 for i in post_channels:
-                    msg = self.q.get()
+                    #監視チャンネルじゃないかつ定期報告の時はスキップ
+                    if (i.name in config.POST_CHANNEL_CONFIG)and('[BOT]' in msg):
+                        continue
                     print(msg)
                     if self.mj.sleep_mode == 0:
                         if MODEL_NO_2_ENABLE:
@@ -381,8 +388,8 @@ class MiyaClient(discord.Client):
             # 暫定発言措置
             if MODEL_NO_2_ENABLE:
                 while not self.q2.empty():
+                    msg = self.q2.get()
                     for i in post_channels:
-                        msg = self.q2.get()
                         msg = msg[len(config.PROV_STR):]
                         print('[Provisional] '+msg)
                         await i.send(msg)
@@ -422,7 +429,7 @@ class MiyaClient(discord.Client):
                     await self.no2_message(message, r[1])
 
         # ここから監視ch用
-        if not str(message.channel) in config.POST_CHANNEL_CONFIG:
+        if not str(message.channel) in config.SURVEIL_CHANNEL_CONFIG:
             return
 
         for r in repatter_sys:
@@ -437,7 +444,7 @@ class MiyaClient(discord.Client):
 
         # アカウントの追加・削除
         commandlist = message.content.split()
-        print("[BOT]" + str(commandlist))
+        #print("[BOT]" + str(commandlist))
         if "botctl" in commandlist:
             if "add" in commandlist:
                 self.add_account(commandlist[2])
