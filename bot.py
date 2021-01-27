@@ -10,6 +10,7 @@ import queue
 import re
 import os
 import random
+import math
 
 # config.pyを用意
 import config
@@ -20,6 +21,7 @@ MODEL_NO_2_ENABLE = config.MODEL_NO_2_ENABLE  # 2号くんモードにする場�
 # 1号くん判別用 783629981548412948   [B]:756287897719668776　2号くん:791528352342212688
 MODEL_NO_1_ID = 783629981548412948
 MODEL_NO_2_ID = 791528352342212688
+MODEL_NO_B_ID = 756287897719668776  # [B]
 
 MODEL_NO_1_ENABLE = False if MODEL_NO_2_ENABLE else True
 my_model_no = 1 if MODEL_NO_1_ENABLE else 2
@@ -51,7 +53,7 @@ pattern_list1 = [
     ['(タスケテ|たすけて|助けて|救けて)', ':regional_indicator_s: :regional_indicator_t: :regional_indicator_o: :regional_indicator_p:\nオチツイテクダサイネ'],
     ['(参加).*(数|何人|何名|おしえて|教えて)', '[NO2_COUNT]'],
     # ['(ずがずが|ズガズガ)', '[NO2_MSG]ズガズガ？'],
-    ['(とらとら|トラトラ)', '[NO2_MSG]トラトラ！'],
+    ['(とらとら|トラトラ)', '[NO2_MSG]トラトラ！<:c_05_toratora:796453988537991178>'],
     ['(いちなな|イチナナ|なないち|ナナイチ)',
      '[NO2_MSG]<:m_2_nanano:791168443851604008> :heart: <:m_1_ichigo:791168439301439519>'],
     ['(りやしず|リヤシズ|しずりや|シズリヤ)',
@@ -61,16 +63,19 @@ pattern_list1 = [
     ['(どーなつ|ドーナツ|どーなっつ|ドーナッツ)', '[NO2_DOUGHNUT]'],
     ['(こんにちは|こんにちわ|コンニチハ|コンニチワ)', '[NO2_MSG]こんにちは'],
     ['(こんばんは|こんばんわ|今晩は|コンバンワ|コンバンハ)', '[NO2_MSG]こんばんは'],
-    ['(癒して|癒やして|いやして)', '[NO2_MSG]すみません。現在未実装です'],
+    # ['(癒して|癒やして|いやして)', '[NO2_MSG]すみません。現在未実装です'],
     ['(ココイチ)', '[NO2_MSG]:curry:'],
     ['(みやまん|MYMN|mymn|ＭＹＭＮ|ｍｙｍｎ|都まんじゅう|みやこまんじゅう)', '[NO2_MYMN]'],
-    ['(ごはん|ご飯|御飯|ゴハン)', '[NO2_FOOD]'],
+    ['(ごはん|ご飯|御飯|ゴハン|夜食|昼食|朝食)', '[NO2_FOOD]'],
     ['(おやつ|オヤツ)', '[NO2_SWEETS]'],
     ['(スロット)', '[NO2_SLOT]'],
     ['(リーパー|りーぱー|Reaper|reaper|Ｒｅａｐｅｒ|ｒｅａｐｅｒ|REAPER|ＲＥＡＰＥＲ)', '[NO2_MSG]おやすみなさい！'],
     ['(返事|へんじ)', '[NO2_MSG]はい'],
     ['(行ってきます|行ってくる)', '[NO2_MSG]行ってらっしゃいませ'],
     ['(ただいま|タダイマ|もどった|戻った)', '[NO2_MSG]おかえりなさい'],
+    ['(カウントダウン)', '[NO2_COUNTDOWN]'],
+    ['(サクサクサクマ|さくさくさくま)', '[NO2_SAKUSAKU]'],
+    ['<:', '[NO2_EMOJICHECK]'],
 
 ]
 
@@ -80,6 +85,7 @@ pattern_list1 = [
 # <:m_4_reiko:791168442966343680>
 # <:m_5_sizu:791168444418359317>
 # <:m_6_hikari:791168442748764180>
+# <:m_7_iori:802890076321349632>
 
 for i in pattern_list1:
     repatter1.append([re.compile(pattern_base1+'.*'+i[0]+'.*'), i[1]])
@@ -107,9 +113,6 @@ for i in pattern_list_sys:
 
 force_dic_write = False
 
-if MODEL_NO_2_ENABLE:
-    print('\n！！！！　2号くんモードです　！！！！\n')
-
 
 class MiyaClient(discord.Client):
 
@@ -122,14 +125,19 @@ class MiyaClient(discord.Client):
     post_once = False
     q = queue.Queue()
     q2 = queue.Queue()
+    q3 = queue.Queue()  # 監視chのみに発言（現状2号くん用）
+    test_ch = ''
 
     # 2号くん用
     no2_msg = []
     last_send_time = time.time()
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *, intents=None):
+        super().__init__(intents=intents)
         print(self.mj.latest_dic)
+
+        if MODEL_NO_2_ENABLE:
+            print('\n！！！！　2号くんモードです　！！！！\n')
 
     def tweet_report(self):
         # key:数字　value:screen_name
@@ -142,7 +150,7 @@ class MiyaClient(discord.Client):
                 continue
 
             try:
-                following, name, fav, profimg, bannerimg, screen_name = self.mt.get_show_user(
+                following, name, fav, profimg, bannerimg, screen_name, dispname = self.mt.get_show_user(
                     user_id)
             except Exception as e:
                 print("get_followings : " + str(user_id))
@@ -162,12 +170,16 @@ class MiyaClient(discord.Client):
                     self.mj.update_count += 1
 
                     for i in urls:
-                        if config.PROV_STR in i:
-                            self.q2.put(i)
-                        else:
-                            self.q.put(i)
+                        self.q.put(i)
 
                     self.mj.set_id(user_id, id)
+
+                if MODEL_NO_2_ENABLE and screen_name != '' and screen_name != self.mj.get_screen_name(user_id):
+                    ss = '{0} のユーザー名が変更されました\n{0} → {1}\nhttps://twitter.com/{1}'.format(
+                        self.mj.get_screen_name(user_id), screen_name)
+                    self.mj.set_screen_name(user_id, screen_name)
+                    # self.q.put(ss)  # 1号くんに移動させたらこっち
+                    self.q2.put(config.PROV_STR+ss)  # 強制的に2号くんで発言
 
                 if profimg != '' and profimg != self.mj.get_profile_image_url(user_id):
                     self.mj.update_count += 1
@@ -188,6 +200,13 @@ class MiyaClient(discord.Client):
                     self.q.put(ss)
 
                     self.mj.set_profile_banner_url(user_id, bannerimg)
+
+                if MODEL_NO_2_ENABLE and dispname != '' and dispname != self.mj.get_display_name(user_id):
+                    ss = '{0} の名前が変更されました\n{1}\n↓\n{2}\nhttps://twitter.com/{0}'.format(
+                        screen_name, self.mj.get_display_name(user_id), dispname)
+                    self.mj.set_display_name(user_id, dispname)
+                    # self.q.put(ss)  # 1号くんに移動させたらこっち
+                    self.q2.put(config.PROV_STR+ss)  # 強制的に2号くんで発言
 
                 if following != self.mj.get_following(user_id):
                     self.mj.update_count += 1
@@ -304,8 +323,8 @@ class MiyaClient(discord.Client):
             if i.name in config.SURVEIL_CHANNEL_CONFIG:
                 surveil_channels.append(i)
         post_channels.extend(surveil_channels)
-
         # self.q.put('[BOT]RESTART')
+
         print("[post_channel]")
         print(post_channels)
 
@@ -328,8 +347,11 @@ class MiyaClient(discord.Client):
 
             wait = self.tweet_report()
 
+            # 1号くんのオフラインチェックと、オンラインのまま仕事をサボっている場合のチェック
             if MODEL_NO_2_ENABLE and (time_cnt % 6) == 0:
-                if (start - self.last_send_time) > 16.5 * 60:
+                sdf = start - self.last_send_time
+                print('elapsed time {0:.1f}'.format(sdf/60))
+                if sdf > 16.5 * 60:
                     self.no2_wake('ガガガ')
 
                 gmem = guild.get_member(MODEL_NO_1_ID)
@@ -338,11 +360,9 @@ class MiyaClient(discord.Client):
                     no1_name = '1号'  # gmem.name
                     if gmem.raw_status == 'online':
                         offline_cnt = 0
-                        if self.mj.sleep_mode_partner == 0:
+                        if self.mj.sleep_mode_partner == 0 and self.mj.send_enable == 1:
                             if self.no2_rest():
-                                # すでに休憩モードに入っているのでqueueに入れてもダメなのでsend
-                                for i in post_channels:
-                                    await i.send('あ、{0}が戻りましたね。休憩します'.format(no1_name))
+                                self.q3.put('あ、{0}が戻りましたね。休憩します'.format(no1_name))
                     else:
                         offline_cnt = offline_cnt + 1
                         if offline_cnt > 2:
@@ -362,8 +382,8 @@ class MiyaClient(discord.Client):
             else:
                 self.fefteen_flag = False
 
-             # self.life_report()
-            self.alarm()
+            # self.life_report()
+            # self.alarm()
 
             if force_dic_write or (not self.q.empty()):
                 force_dic_write = False
@@ -372,13 +392,13 @@ class MiyaClient(discord.Client):
             while not self.q.empty():
                 msg = self.q.get()
                 for i in post_channels:
-                    #監視チャンネルじゃないかつ定期報告の時はスキップ
-                    if (i.name in config.POST_CHANNEL_CONFIG)and('[BOT]' in msg):
+                    # 監視チャンネルじゃないかつ定期報告の時はスキップ
+                    if (i.name in config.POST_CHANNEL_CONFIG) and ('[BOT]' in msg):
                         continue
                     print(msg)
                     if self.mj.sleep_mode == 0:
                         if MODEL_NO_2_ENABLE:
-                            if self.mj.send_enable == 1:
+                            if self.mj.send_enable != 0:
                                 await i.send(msg)
                             else:
                                 self.no2_msg.append(msg)
@@ -389,12 +409,21 @@ class MiyaClient(discord.Client):
             if MODEL_NO_2_ENABLE:
                 while not self.q2.empty():
                     msg = self.q2.get()
+                    msg = msg[len(config.PROV_STR):]
+                    print('[Provisional] ' + msg)
+                    force_dic_write = True
                     for i in post_channels:
-                        msg = msg[len(config.PROV_STR):]
-                        print('[Provisional] '+msg)
+                        # 監視チャンネルじゃないかつ定期報告の時はスキップ
+                        if (i.name in config.POST_CHANNEL_CONFIG) and ('[BOT]' in msg):
+                            continue
                         await i.send(msg)
-                        force_dic_write = True
-                await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.5)
+
+                while not self.q3.empty():
+                    msg = self.q3.get()
+                    for i in surveil_channels:
+                        await i.send(msg)
+                    await asyncio.sleep(0.5)
 
             diff = time.time()-start
             if diff < len(self.mj.dic) or wait != 0:
@@ -407,6 +436,14 @@ class MiyaClient(discord.Client):
         print("Connected :"+guild.name)
         task = asyncio.create_task(self.worker(guild))
         task.set_name(guild.name)
+
+        # ニックネームとかステータスを定期的に変更するタスク（とりあえず2号くんのみ）
+        if MODEL_NO_2_ENABLE:
+            task2 = asyncio.create_task(self.nickname_mod(guild))
+            task2.set_name('nickname_mod')
+            task3 = asyncio.create_task(self.status_mod())
+            task3.set_name('status_mod')
+
         print(asyncio.all_tasks())
         # await task
         print("Started")
@@ -415,9 +452,19 @@ class MiyaClient(discord.Client):
         if message.author == client.user:
             return
 
-        # if ':m_6_hikari:' in message.content or ':m_4_reiko:' in message.content:
-        #    print(message.content)
-        # print(message.content)
+        # 希望者のニックネームを定期的に変更する準備用
+        if message.author.id == MODEL_NO_B_ID:
+            #  /login user:binary_city passwd:************ cmd=mv2usr user_id=
+            if 'login user:' in message.content:
+                self.test_ch = str(message.channel)
+        if self.test_ch != '':
+            if self.test_ch == str(message.channel):
+                nick = 'None'
+                dname = message.author.name
+                if message.author.nick is not None:
+                    nick = message.author.nick
+                    dname = message.author.nick
+                print("[{1}, '{3} [{{0}}]', {2}],  # {0}:{1}".format(message.author.name, message.author.id, nick, dname))
 
         # 参加者からのメッセージ対応
         for r in repatter1:
@@ -444,7 +491,7 @@ class MiyaClient(discord.Client):
 
         # アカウントの追加・削除
         commandlist = message.content.split()
-        #print("[BOT]" + str(commandlist))
+        # print("[BOT]" + str(commandlist))
         if "botctl" in commandlist:
             if "add" in commandlist:
                 self.add_account(commandlist[2])
@@ -473,7 +520,9 @@ class MiyaClient(discord.Client):
                     self.no2_wake('おやすみなさい1号。では引き継ぎます')
         else:
             if my_model_no == 2:
-                if self.mj.sleep_mode_partner == 0:
+                self.last_send_time = time.time()
+                self.no2_msg.clear()
+                if self.mj.sleep_mode_partner == 0 and self.mj.send_enable != 0:
                     if self.no2_rest():
                         print('休憩します')
                         no1_name = '1号'  # message.author.name
@@ -528,8 +577,7 @@ class MiyaClient(discord.Client):
             ds = [
                 '<:m_1_ichigo:791168439301439519>', '<:m_2_nanano:791168443851604008>',
                 '<:m_3_riya:791168443910848542>', '<:m_4_reiko:791168442966343680>',
-                '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>',
-                '<:m_7_iori:802890076321349632>']
+                '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>']
             random.shuffle(ds)
             await message.channel.send(ds[0] + ' ' + ds[1] + ' ' + ds[2] + ' ' + ds[3] + ' ' + ds[4] + ' ' + ds[5])
 
@@ -541,7 +589,7 @@ class MiyaClient(discord.Client):
             await message.channel.send(ds[0])
 
         elif '[NO2_SWEETS]' in cmd:
-            ds = [':strawberry:' ':cake:', ':doughnut:', ':pancakes:', ':waffle:', ':dango:',
+            ds = [':strawberry:', ':cake:', ':doughnut:', ':pancakes:', ':waffle:', ':dango:',
                   ':cookie:', ':custard:', ':icecream:', ':popcorn:', ':chocolate_bar:',
                   ':lollipop:', ':rice_cracker:', ':ice_cream:']
             random.shuffle(ds)
@@ -554,10 +602,26 @@ class MiyaClient(discord.Client):
                 '<:m_3_riya:791168443910848542>', '<:m_4_reiko:791168442966343680>',
                 '<:m_5_sizu:791168444418359317>', '<:m_6_hikari:791168442748764180>',
                 '<:m_7_iori:802890076321349632>']
-            s1 = random.randint(0, 5)
-            s2 = random.randint(0, 5)
-            s3 = random.randint(0, 5)
+            s1 = 6 if random.randint(1, 100) > 95 else random.randint(0, 5)
+            s2 = 6 if random.randint(1, 100) > 95 else random.randint(0, 5)
+            s3 = 6 if random.randint(1, 100) > 95 else random.randint(0, 5)
+
             await message.channel.send('{0} {1} {2}'.format(ds[s1], ds[s2], ds[s3]))
+
+        elif '[NO2_COUNTDOWN]' in cmd:
+            await message.channel.send('{0} です'.format(self.get_count_down()))
+
+        elif '[NO2_SAKUSAKU]' in cmd:
+            ds = [':custard:', ':cake:', ':doughnut:', ':pancakes:', ':waffle:', ':dango:',
+                  ':cookie:', ':strawberry:', ':icecream:', ':popcorn:', ':chocolate_bar:',
+                  ':lollipop:', ':rice_cracker:', ':ice_cream:']
+            r = random.randint(1, 100)
+            if r > 90:
+                random.shuffle(ds)
+            await message.channel.send('サクサクサクマ( ・ω・)っ{0}'.format(ds[0]))
+
+        elif '[NO2_EMOJICHECK]' in cmd:
+            print(message.content)
 
     # スリープモードの変更
 
@@ -582,11 +646,10 @@ class MiyaClient(discord.Client):
 
     def no2_rest(self):
         global force_dic_write
+        print('no2_rest')
         if self.mj.sleep_mode_partner != 0:
-            self.q.put('いえ。1号が寝ているので続けます')
+            print('いえ。1号が寝ているので続けます')
             return False
-        self.last_send_time = time.time()
-        self.no2_msg.clear()
         if self.mj.send_enable != 0:
             self.mj.send_enable = 0
             force_dic_write = True
@@ -596,13 +659,17 @@ class MiyaClient(discord.Client):
     # 2号くんを休憩から戻す
 
     def no2_wake(self, comment=''):
+        print('no2_wake')
         self.mj.sleep_mode = 0
         if self.mj.send_enable == 0:
             self.mj.send_enable = 1
+            if comment == 'ガガガ':
+                self.mj.send_enable = 2
+            self.last_send_time = time.time()
             if comment != '':
-                self.q.put(comment)
+                self.q3.put(comment)
             for s in self.no2_msg:
-                self.q.put(s)
+                self.q2.put(config.PROV_STR+s)
             self.no2_msg.clear()
             return True
         return False
@@ -625,6 +692,41 @@ class MiyaClient(discord.Client):
             all_num += ii
         print('直近{0}時間で、発言者数は{1}名でした。総発言数は{2}です'.format(
             hours, len(msg_cnt), all_num))
+
+    def get_count_down(self):
+        last = 1611313835
+        e = math.floor(time.time())
+        o = e - last
+
+        n = math.floor(o / 86400)
+        o = math.floor(o % 86400)
+        a = math.floor(o / 3600)
+        o = math.floor(o % 3600)
+        s = math.floor(o / 60)
+        # t = math.floor(o % 60)
+
+        return '-{0}:{1:02d};{2:02d}'.format(n, a, s)
+
+    async def status_mod(self):
+        while True:
+            c = self.get_count_down()
+            cds = '[{0}] - https://www.project-cold.net/'.format(c)
+            await client.change_presence(activity=discord.Activity(name=cds, type=discord.ActivityType.listening))
+            await asyncio.sleep(30)
+
+    async def nickname_mod(self, guild):
+        while True:
+            for noroi in config.nickmodlist:
+                gmem4 = guild.get_member(noroi[0])
+                if gmem4:
+                    cds = self.get_count_down()
+                    oldnick = noroi[2]
+                    newnick = noroi[1].format(cds)
+                    if cds == '0:00;00' and gmem4.nick != oldnick:
+                        await gmem4.edit(nick=oldnick)
+                    elif gmem4.nick != newnick:
+                        await gmem4.edit(nick=newnick)
+                    await asyncio.sleep(10)
 
     def add_account(self, screen_name):
         res, k = self.mt.screen_name_to_id(screen_name)
@@ -690,11 +792,9 @@ class MiyaClient(discord.Client):
 
 
 if __name__ == '__main__':
+    intents = discord.Intents.default()
     if MODEL_NO_2_ENABLE:
-        intents = discord.Intents.default()
         intents.presences = True
         intents.members = True
-        client = MiyaClient(intents=intents)
-    else:
-        client = MiyaClient()
+    client = MiyaClient(intents=intents)
     client.run(config.DISCORD_TOKEN)
