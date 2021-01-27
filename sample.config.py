@@ -5,7 +5,10 @@ ACCESS_TOKEN_SECRET = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 DISCORD_TOKEN = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
-POST_CHANNEL_CONFIG = ['twitter監視ch']
+# 発言をするチャンネル
+POST_CHANNEL_CONFIG = ['実況・配信同時視聴']
+# アカウントの追加などもできるチャンネル
+SURVEIL_CHANNEL_CONFIG = ['twitter監視ch']
 
 MODEL_NO_2_ENABLE = False    # 2号くんモードにする場合は True
 

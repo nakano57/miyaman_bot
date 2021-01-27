@@ -125,6 +125,7 @@ class MiyaClient(discord.Client):
     post_once = False
     q = queue.Queue()
     q2 = queue.Queue()
+    q3 = queue.Queue()  # 監視chのみに発言（現状2号くん用）
     test_ch = ''
 
     # 2号くん用
@@ -169,18 +170,16 @@ class MiyaClient(discord.Client):
                     self.mj.update_count += 1
 
                     for i in urls:
-                        if config.PROV_STR in i:
-                            self.q2.put(i)
-                        else:
-                            self.q.put(i)
+                        self.q.put(i)
 
                     self.mj.set_id(user_id, id)
 
-                if screen_name != '' and screen_name != self.mj.get_screen_name(user_id):
+                if MODEL_NO_2_ENABLE and screen_name != '' and screen_name != self.mj.get_screen_name(user_id):
                     ss = '{0} のユーザー名が変更されました\n{0} → {1}\nhttps://twitter.com/{1}'.format(
                         self.mj.get_screen_name(user_id), screen_name)
                     self.mj.set_screen_name(user_id, screen_name)
-                    self.q.put(ss)
+                    # self.q.put(ss)  # 1号くんに移動させたらこっち
+                    self.q2.put(config.PROV_STR+ss)  # 強制的に2号くんで発言
 
                 if profimg != '' and profimg != self.mj.get_profile_image_url(user_id):
                     self.mj.update_count += 1
@@ -315,14 +314,18 @@ class MiyaClient(discord.Client):
         time_cnt = 0
         offline_cnt = 0
         post_channels = []
+        surveil_channels = []
         f = False
         # print(guild.text_channels)
         for i in guild.text_channels:
             if i.name in config.POST_CHANNEL_CONFIG:
                 post_channels.append(i)
-
+            if i.name in config.SURVEIL_CHANNEL_CONFIG:
+                surveil_channels.append(i)
+        post_channels.extend(surveil_channels)
         # self.q.put('[BOT]RESTART')
 
+        print("[post_channel]")
         print(post_channels)
 
         # dump.jsonが15分以上更新されてなかった時、死んでたと判断しsendせずjsonだけをアップデート
@@ -359,9 +362,7 @@ class MiyaClient(discord.Client):
                         offline_cnt = 0
                         if self.mj.sleep_mode_partner == 0 and self.mj.send_enable == 1:
                             if self.no2_rest():
-                                # すでに休憩モードに入っているのでqueueに入れてもダメなのでsend
-                                for i in post_channels:
-                                    await i.send('あ、{0}が戻りましたね。休憩します'.format(no1_name))
+                                self.q3.put('あ、{0}が戻りましたね。休憩します'.format(no1_name))
                     else:
                         offline_cnt = offline_cnt + 1
                         if offline_cnt > 2:
@@ -381,16 +382,19 @@ class MiyaClient(discord.Client):
             else:
                 self.fefteen_flag = False
 
-             # self.life_report()
-            self.alarm()
+            # self.life_report()
+            # self.alarm()
 
             if force_dic_write or (not self.q.empty()):
                 force_dic_write = False
                 self.mj.dump()
 
             while not self.q.empty():
+                msg = self.q.get()
                 for i in post_channels:
-                    msg = self.q.get()
+                    # 監視チャンネルじゃないかつ定期報告の時はスキップ
+                    if (i.name in config.POST_CHANNEL_CONFIG) and ('[BOT]' in msg):
+                        continue
                     print(msg)
                     if self.mj.sleep_mode == 0:
                         if MODEL_NO_2_ENABLE:
@@ -404,13 +408,22 @@ class MiyaClient(discord.Client):
             # 暫定発言措置
             if MODEL_NO_2_ENABLE:
                 while not self.q2.empty():
+                    msg = self.q2.get()
+                    msg = msg[len(config.PROV_STR):]
+                    print('[Provisional] ' + msg)
+                    force_dic_write = True
                     for i in post_channels:
-                        msg = self.q2.get()
-                        msg = msg[len(config.PROV_STR):]
-                        print('[Provisional] '+msg)
+                        # 監視チャンネルじゃないかつ定期報告の時はスキップ
+                        if (i.name in config.POST_CHANNEL_CONFIG) and ('[BOT]' in msg):
+                            continue
                         await i.send(msg)
-                        force_dic_write = True
-                await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.5)
+
+                while not self.q3.empty():
+                    msg = self.q3.get()
+                    for i in surveil_channels:
+                        await i.send(msg)
+                    await asyncio.sleep(0.5)
 
             diff = time.time()-start
             if diff < len(self.mj.dic) or wait != 0:
@@ -463,7 +476,7 @@ class MiyaClient(discord.Client):
                     await self.no2_message(message, r[1])
 
         # ここから監視ch用
-        if not str(message.channel) in config.POST_CHANNEL_CONFIG:
+        if not str(message.channel) in config.SURVEIL_CHANNEL_CONFIG:
             return
 
         for r in repatter_sys:
@@ -478,7 +491,7 @@ class MiyaClient(discord.Client):
 
         # アカウントの追加・削除
         commandlist = message.content.split()
-        print("[BOT]" + str(commandlist))
+        # print("[BOT]" + str(commandlist))
         if "botctl" in commandlist:
             if "add" in commandlist:
                 self.add_account(commandlist[2])
@@ -654,7 +667,7 @@ class MiyaClient(discord.Client):
                 self.mj.send_enable = 2
             self.last_send_time = time.time()
             if comment != '':
-                self.q.put(comment)
+                self.q3.put(comment)
             for s in self.no2_msg:
                 self.q2.put(config.PROV_STR+s)
             self.no2_msg.clear()
