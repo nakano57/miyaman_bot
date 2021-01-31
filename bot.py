@@ -198,7 +198,7 @@ class MiyaClient(discord.Client):
                     bef = self.mj.get_following(user_id)
 
                     if not(screen_name in ex_follow):
-                        self.q.put(name+"のフォロー数が"+str(bef) +
+                        self.q.put("[BOT]"+name+"のフォロー数が"+str(bef) +
                                    "から"+str(following)+"になりました")
 
                     self.mj.set_following(user_id, following)
@@ -214,7 +214,7 @@ class MiyaClient(discord.Client):
                         bef = self.mj.get_favorite(user_id)
 
                         if not (screen_name in ex_iine):
-                            self.q.put(name+"のいいね数が"+str(bef) +
+                            self.q.put("[BOT]"+name+"のいいね数が"+str(bef) +
                                        "から"+str(fav)+"になりました")
 
                         self.mj.set_favorite(user_id, fav)
@@ -363,7 +363,7 @@ class MiyaClient(discord.Client):
                 self.fefteen_flag = False
 
              # self.life_report()
-            self.alarm()
+            # self.alarm()
 
             if force_dic_write or (not self.q.empty()):
                 force_dic_write = False
@@ -372,8 +372,8 @@ class MiyaClient(discord.Client):
             while not self.q.empty():
                 msg = self.q.get()
                 for i in post_channels:
-                    #監視チャンネルじゃないかつ定期報告の時はスキップ
-                    if (i.name in config.POST_CHANNEL_CONFIG)and('[BOT]' in msg):
+                    # 監視チャンネルじゃないかつ定期報告の時はスキップ
+                    if (i.name in config.POST_CHANNEL_CONFIG) and ('[BOT]' in msg):
                         continue
                     print(msg)
                     if self.mj.sleep_mode == 0:
@@ -389,8 +389,8 @@ class MiyaClient(discord.Client):
             if MODEL_NO_2_ENABLE:
                 while not self.q2.empty():
                     msg = self.q2.get()
+                    msg = msg[len(config.PROV_STR):]
                     for i in post_channels:
-                        msg = msg[len(config.PROV_STR):]
                         print('[Provisional] '+msg)
                         await i.send(msg)
                         force_dic_write = True
