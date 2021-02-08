@@ -24,7 +24,7 @@ class MiyaTwi():
 
         self.my_model_no = modelNo
 
-    def get_latest_tweets(self, mj, user_id, count):
+    def get_latest_tweets(self, mj, user_id, count, screen_name=''):
 
         params = {
             'count': count,
@@ -36,7 +36,6 @@ class MiyaTwi():
 
         message = []
         id = 0
-        screen_name = ''
 
         # 死神だけは何も返ってこない
         if res.text == '':
@@ -52,7 +51,8 @@ class MiyaTwi():
                 mj.set_statuses_count(user_id, statuses_count)
 
                 if n > 1:
-                    message, id = self.get_latest_tweets(mj, user_id, n)
+                    message, id = self.get_latest_tweets(
+                        mj, user_id, n, screen_name)
                     message.reverse()
                     return message, id
 

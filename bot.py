@@ -376,12 +376,12 @@ class MiyaClient(discord.Client):
 
             min = datetime.datetime.now().minute
 
-            if (min % 15) == 0:
-                if self.fefteen_flag == False:
-                    self.fefteen_flag = True
-                    self.regular_report()
-            else:
-                self.fefteen_flag = False
+            # if (min % 15) == 0:
+            #     if self.fefteen_flag == False:
+            #         self.fefteen_flag = True
+            #         self.regular_report()
+            # else:
+            #     self.fefteen_flag = False
 
             # self.life_report()
             # self.alarm()
